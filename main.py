@@ -46,6 +46,8 @@ bot = telebot.TeleBot(TOKEN)
 bot_activo = False
 usuarios_df = pd.DataFrame()
 estado_excel = "📊 Archivo Excel: No cargado ❌"
+ultima_ruta_archivo = ""
+
 
 # Carpeta donde se guardarán los archivos subidos
 CARPETA_ARCHIVOS = "archivos_subidos"
@@ -167,6 +169,7 @@ def recibir_archivo(message: Message):
 
         file_name = message.document.file_name
         file_path = os.path.join(CARPETA_ARCHIVOS, file_name)
+        ultima_ruta_archivo = file_path
         downloaded_file = bot.download_file(file_info.file_path)
 
         with open(file_path, "wb") as new_file:
@@ -201,7 +204,7 @@ def ver_ruta_archivo(message):
     chat_id = message.chat.id
 
     if not usuarios_df.empty:
-        mensaje = f"📂 Último archivo cargado:\n{file_path}"
+        mensaje = f"📂 Último archivo cargado:\n{ultima_ruta_archivo}"
     else:
         mensaje = "⚠️ No hay archivos subidos aún."
 
