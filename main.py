@@ -17,6 +17,7 @@ import pygame  # O usa `playsound`, pero no ambos
 import platform
 import psutil  # Información de CPU y RAM
 import pytz
+from telebot.types import Message  # Asegura que esté importado
 from dotenv import load_dotenv
 
 # Cargar variables de entorno desde un archivo .env
