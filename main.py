@@ -21,7 +21,7 @@ from telebot.types import Message  # Asegura que esté importado
 from dotenv import load_dotenv
 import textwrap
 import time as tm
-
+from flask import Flask, request
 
 # Cargar variables de entorno desde un archivo .env
 load_dotenv()
@@ -1062,21 +1062,42 @@ def enviar_mensaje_noche():
 
         time.sleep(30)  # Verifica cada 30 segundos
 
-if __name__ == "__main__":
-    inicio_bot = datetime.now(tz_lima)  # Guarda la hora en la zona horaria correcta
+# Crear aplicación Flask
+app = Flask(__name__)
 
-    print(f"🤖 Bot iniciado correctamente. Estado: ENCENDIDO 🟢")
+# Ruta principal para comprobar que el bot está funcionando
+@app.route("/", methods=["GET"])
+def home():
+    return "🤖 Bot funcionando con Webhooks en Railway 🚀"
+
+# Ruta para recibir las actualizaciones del Webhook
+@app.route(f"/{TOKEN}", methods=["POST"])
+def webhook():
+    update = request.get_json()
+    if update:
+        bot.process_new_updates([telebot.types.Update.de_json(update)])
+    return "OK", 200
+
+# Función para enviar mensaje nocturno (si usabas esto en un hilo)
+def enviar_mensaje_noche():
+    while bot_activo:
+        print("🌙 Enviando mensaje de buenas noches...")
+        # Aquí iría tu código para enviar el mensaje
+        threading.Event().wait(3600)  # Espera 1 hora antes de repetir
+
+if __name__ == "__main__":
+    inicio_bot = datetime.now(tz_lima)
+    print(f"🤖 Bot iniciado correctamente con Webhooks. Estado: ENCENDIDO 🟢")
     print(f"🕒 Iniciado en: {inicio_bot.strftime('%Y-%m-%d %H:%M:%S')} (Hora de Lima)")
+
+    # Iniciar el webhook en Telegram con la URL de Railway
+    bot.remove_webhook()
+    WEBHOOK_URL = f"https://ninabot-production.up.railway.app/{TOKEN}"
+    bot.set_webhook(url=WEBHOOK_URL)
 
     # Inicia el hilo para enviar el mensaje de buenas noches
     threading.Thread(target=enviar_mensaje_noche, daemon=True).start()
 
-    try:
-        bot.infinity_polling()
-    except KeyboardInterrupt:
-        print("🛑 Bot detenido. Estado: APAGADO 🔴")
-        bot_activo = False
+    # Ejecutar Flask en Railway en el puerto 8080
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 8080)))
 
-
-# Mantener el bot activo
-bot.polling()
