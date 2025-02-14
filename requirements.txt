@@ -5,12 +5,11 @@ pyTelegramBotAPI==4.25.0
 python-dotenv==1.0.1
 requests==2.32.3
 urllib3==2.2.3
-pandas==1.5.3  # Última versión compatible con Python 3.10+
-tk
+pandas==1.5.3
 geopy==2.4.0
-numpy==1.23.5  # Compatible con Python 3.10+
+numpy==1.23.5
 playsound==1.2.2
-pygame==2.1.3.dev8  # Versión compatible con Python 3.10+
+pygame==2.1.3.dev8
 psutil==5.9.5
 pytz==2024.1
 gtts==2.4.0
