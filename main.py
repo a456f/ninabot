@@ -43,7 +43,7 @@ if not TOKEN:
 bot = telebot.TeleBot(TOKEN)
 
 # Estado global
-bot_activo = False
+bot_activo = True
 usuarios_df = pd.DataFrame()
 estado_excel = "📊 Archivo Excel: No cargado ❌"
 ultima_ruta_archivo = ""
@@ -131,9 +131,6 @@ def ver_ruta_archivos(message):
 def espacio_usado(message):
     espacio = os.popen("df -h /app").read()
     bot.send_message(message.chat.id, f"📊 *Uso de espacio en Railway:*\n```\n{espacio}\n```", parse_mode="Markdown")
-
-
-bot_activo = False  # Comienza apagado
 
 PASSWORD_CORRECTA = "1"
 usuarios_autorizados = {}
