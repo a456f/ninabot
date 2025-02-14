@@ -24,6 +24,11 @@ import datetime
 import platform
 import psutil  # También es necesario si usas información de CPU y RAM
 import pytz
+from dotenv import load_dotenv
+
+# Cargar variables de entorno desde un archivo .env
+load_dotenv()
+
 
 # Definir la zona horaria de Lima (GMT-5)
 tz_lima = pytz.timezone('America/Lima')
