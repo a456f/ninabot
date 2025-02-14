@@ -10,3 +10,4 @@ pygame
 psutil
 pytz
 python-dotenv
+openpyxl
