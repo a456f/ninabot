@@ -3,20 +3,17 @@ import telebot
 import pandas as pd
 import threading
 import webbrowser
-from datetime import datetime
+from datetime import datetime, time
 from telebot import types
 from geopy.geocoders import Nominatim
-import textwrap
 import numpy as np
-import time
+import time as tm  # Evitar conflicto con `time` de `datetime`
 import requests
 import json
 import shutil
 import glob
-from telebot.types import Message, Document
 from gtts import gTTS
-import playsound  # Alternativamente, puedes usar pygame.mixer
-import pygame
+import pygame  # O usa `playsound`, pero no ambos
 import platform
 import psutil  # Información de CPU y RAM
 import pytz
