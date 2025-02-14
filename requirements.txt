@@ -9,3 +9,4 @@ playsound==1.2.2
 pygame
 psutil
 pytz
+python-dotenv
