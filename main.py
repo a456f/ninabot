@@ -964,7 +964,7 @@ def ver_estado(message):
     estado_bot = "🟢 Encendido" if bot_activo else "🔴 Apagado"
 
     if bot_activo:
-        ahora = datetime.datetime.now(tz_lima)
+        ahora = datetime.now(tz_lima)
         tiempo_activado = ahora - inicio_bot
         tiempo_activado_str = str(tiempo_activado).split(".")[0]  # Sin milisegundos
         mensaje_tiempo = f"⏳ Tiempo activo: {tiempo_activado_str}"
@@ -994,7 +994,7 @@ hora_programada = time(22, 0)  # 10:00 PM
 @bot.message_handler(commands=['cuantofalta'])
 def cuanto_falta(message):
     """Calcula cuánto falta para el mensaje programado de las 10 PM y muestra la hora exacta."""
-    ahora = datetime.datetime.now(tz_lima)
+    ahora = datetime.now(tz_lima)
     hora_objetivo = ahora.replace(hour=hora_programada.hour, minute=hora_programada.minute, second=0, microsecond=0)
 
     if ahora >= hora_objetivo:
@@ -1014,7 +1014,7 @@ def cuanto_falta(message):
 def enviar_mensaje_noche():
     """Envía un mensaje automáticamente a las 10 PM hora de Lima si el bot sigue activo."""
     while bot_activo:
-        ahora = datetime.datetime.now(tz_lima)
+        ahora = datetime.now(tz_lima)
 
         if ahora.hour == hora_programada.hour and ahora.minute == hora_programada.minute:
             tiempo_activo = ahora - inicio_bot
@@ -1032,7 +1032,7 @@ def enviar_mensaje_noche():
         time.sleep(30)  # Verifica cada 30 segundos
 
 if __name__ == "__main__":
-    inicio_bot = datetime.datetime.now(tz_lima)  # Guarda la hora en la zona horaria correcta
+    inicio_bot = datetime.now(tz_lima)  # Guarda la hora en la zona horaria correcta
 
     print(f"🤖 Bot iniciado correctamente. Estado: ENCENDIDO 🟢")
     print(f"🕒 Iniciado en: {inicio_bot.strftime('%Y-%m-%d %H:%M:%S')} (Hora de Lima)")
