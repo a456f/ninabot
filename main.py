@@ -19,6 +19,9 @@ import psutil  # Información de CPU y RAM
 import pytz
 from telebot.types import Message  # Asegura que esté importado
 from dotenv import load_dotenv
+import textwrap
+import time as tm
+
 
 # Cargar variables de entorno desde un archivo .env
 load_dotenv()
