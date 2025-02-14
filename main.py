@@ -1,7 +1,5 @@
 import telebot
 import pandas as pd
-import tkinter as tk
-from tkinter import ttk, messagebox, scrolledtext, filedialog
 import threading
 import webbrowser
 from datetime import datetime
