@@ -1042,62 +1042,30 @@ def cuanto_falta(message):
     )
     bot.send_message(message.chat.id, mensaje)
 
-def enviar_mensaje_noche():
-    """Envía un mensaje automáticamente a las 10 PM hora de Lima si el bot sigue activo."""
-    while bot_activo:
-        ahora = datetime.now(tz_lima)
-
-        if ahora.hour == hora_programada.hour and ahora.minute == hora_programada.minute:
-            tiempo_activo = ahora - inicio_bot
-            tiempo_activo_str = str(tiempo_activo).split(".")[0]
-
-            mensaje = (
-                "🌙 Buenas noches!\n"
-                "🤖 Tu bot sigue activo desde las "
-                f"{inicio_bot.strftime('%Y-%m-%d %H:%M:%S')} ({tiempo_activo_str}).\n"
-                "Sigue con tus labores, mientras yo me encargo de gestionar tus tareas. 😎"
-            )
-            bot.send_message(USER_ID, mensaje)
-            time.sleep(60)  # Evita que se repita en el mismo minuto
-
-        time.sleep(30)  # Verifica cada 30 segundos
 
 # Crear aplicación Flask
 app = Flask(__name__)
 
-# Ruta principal para comprobar que el bot está funcionando
 @app.route("/", methods=["GET"])
 def home():
     return "🤖 Bot funcionando con Webhooks en Railway 🚀"
 
-# Ruta para recibir las actualizaciones del Webhook
 @app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
+    """Recibe actualizaciones del Webhook y las procesa."""
     update = request.get_json()
     if update:
         bot.process_new_updates([telebot.types.Update.de_json(update)])
     return "OK", 200
 
-# Función para enviar mensaje nocturno (si usabas esto en un hilo)
-def enviar_mensaje_noche():
-    while bot_activo:
-        print("🌙 Enviando mensaje de buenas noches...")
-        # Aquí iría tu código para enviar el mensaje
-        threading.Event().wait(3600)  # Espera 1 hora antes de repetir
-
 if __name__ == "__main__":
-    inicio_bot = datetime.now(tz_lima)
-    print(f"🤖 Bot iniciado correctamente con Webhooks. Estado: ENCENDIDO 🟢")
-    print(f"🕒 Iniciado en: {inicio_bot.strftime('%Y-%m-%d %H:%M:%S')} (Hora de Lima)")
+    print("🚀 Iniciando bot con Webhooks en Railway")
 
-    # Iniciar el webhook en Telegram con la URL de Railway
+    # Configurar el Webhook en Telegram
     bot.remove_webhook()
     WEBHOOK_URL = f"https://ninabot-production.up.railway.app/{TOKEN}"
     bot.set_webhook(url=WEBHOOK_URL)
 
-    # Inicia el hilo para enviar el mensaje de buenas noches
-    threading.Thread(target=enviar_mensaje_noche, daemon=True).start()
-
-    # Ejecutar Flask en Railway en el puerto 8080
+    # Ejecutar Flask en Railway
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", 8080)))
 
