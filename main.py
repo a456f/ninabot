@@ -115,6 +115,10 @@ def detectar_fila_inicio(file_path):
     except Exception as e:
         print(f"❌ Error detectando la fila de inicio: {e}")
     return None
+@bot.message_handler(commands=['ver_archivos'])
+def ver_archivos(message):
+    archivos = os.popen("ls -lah /app").read()
+    bot.send_message(message.chat.id, f"📂 Archivos:\n{archivos}")
 
 bot_activo = False  # Comienza apagado
 
