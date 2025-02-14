@@ -1,3 +1,4 @@
+import os
 import telebot
 import pandas as pd
 import threading
@@ -10,38 +11,35 @@ import numpy as np
 import time
 import requests
 import json
-import os
 import shutil
 import glob
 from telebot.types import Message, Document
 from gtts import gTTS
-import os
 import playsound  # Alternativamente, puedes usar pygame.mixer
-from playsound import playsound
-import threading
 import pygame
-import datetime
 import platform
-import psutil  # También es necesario si usas información de CPU y RAM
+import psutil  # Información de CPU y RAM
 import pytz
 from dotenv import load_dotenv
 
 # Cargar variables de entorno desde un archivo .env
 load_dotenv()
 
-
 # Definir la zona horaria de Lima (GMT-5)
 tz_lima = pytz.timezone('America/Lima')
 
 # Asignar la hora de inicio con la zona horaria correcta
-inicio_bot = datetime.datetime.now(tz_lima)
+inicio_bot = datetime.now(tz_lima)
 
-# Cargar variables de entorno
-load_dotenv()
-TOKEN: str = os.getenv('TELEGRAM_BOT_TOKEN')
+# Obtener el token del bot desde el archivo .env
+TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+
+# Verificar si el token se cargó correctamente
+if not TOKEN:
+    raise ValueError("Error: No se encontró el token de Telegram en las variables de entorno.")
 
 # Inicializar bot
-bot = TeleBot(token=TOKEN)
+bot = telebot.TeleBot(TOKEN)
 
 # Estado global
 bot_activo = False
