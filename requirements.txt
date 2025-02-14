@@ -6,3 +6,11 @@ python-dotenv==1.0.1
 requests==2.32.3
 urllib3==2.2.3
 pandas
+tk
+geopy
+numpy
+playsound
+pygame
+psutil
+pytz
+gtts
