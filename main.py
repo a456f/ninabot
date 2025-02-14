@@ -989,7 +989,7 @@ def ver_estado(message):
 
     bot.send_message(chat_id, mensaje)
 
-hora_programada = datetime.time(13, 15)  # 10:00 PM
+hora_programada = time(22, 0)  # 10:00 PM
 
 @bot.message_handler(commands=['cuantofalta'])
 def cuanto_falta(message):
