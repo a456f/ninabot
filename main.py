@@ -195,6 +195,17 @@ def recibir_archivo(message: Message):
 
         estado_excel = estado_excel_anterior  # Restauramos el estado anterior
 
+@bot.message_handler(commands=['verruta'])
+def ver_ruta_archivo(message):
+    """Muestra la ruta del último archivo subido."""
+    chat_id = message.chat.id
+
+    if not usuarios_df.empty:
+        mensaje = f"📂 Último archivo cargado:\n{file_path}"
+    else:
+        mensaje = "⚠️ No hay archivos subidos aún."
+
+    bot.send_message(chat_id, mensaje)
 
 
 
