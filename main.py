@@ -54,7 +54,7 @@ CARPETA_ARCHIVOS = "archivos_subidos"
 
 # Crear la carpeta si no existe
 os.makedirs(CARPETA_ARCHIVOS, exist_ok=True)
-
+API_VALIDAR_USUARIO = "https://cybernovasystems.com/prueba/sistema_tlc/modelos/telegran/api_validar_usuario.php"
 def cargar_datos_excel():
     """Inicia un hilo para cargar el archivo Excel."""
     threading.Thread(target=_cargar_excel_thread).start()
@@ -897,13 +897,52 @@ def plantilla_seleccionada(call):
 
 @bot.message_handler(commands=['start'])
 def enviar_bienvenida(message):
-    bienvenida = (
-        "👋 ¡Bienvenido al bot de seguimiento de órdenes! 🎉\n\n"
-        "Aquí puedes buscar información sobre tus órdenes utilizando el comando:\n"
-        "/vt [CodiSeguiClien] \n\n"
-        "👤 Información del creador: /creador\n"
-    )
-    bot.reply_to(message, bienvenida)
+    user_id = message.from_user.id
+
+    try:
+        # 1️⃣ Consultar la API para validar usuario y asistencia
+        response = requests.post(API_VALIDAR_USUARIO, json={"user_id": user_id}, timeout=5)
+        data = response.json()
+
+        # 📌 Imprimir en consola todo lo que devuelve la API para depuración
+        print(f"🔍 Respuesta de la API para user_id {user_id}: {data}")
+
+        if not data.get("permitido"):
+            bot.reply_to(message, "⛔ No tienes permiso para usar este bot. Contacta a soporte.")
+            return  
+
+        # 2️⃣ Verificar si el usuario marcó asistencia
+        if not data.get("asistencia_marcada"):
+            bot.reply_to(message, "⚠️ Debes marcar asistencia con /asistencia antes de usar el bot.")
+            return  
+
+        # 3️⃣ Verificar si la asistencia fue aprobada
+        estado_asistencia = data.get("estado_asistencia", "Pendiente")
+
+        if estado_asistencia == "Pendiente":
+            bot.reply_to(message, "⏳ Tu solicitud de asistencia está en revisión. Espera a que sea aprobada antes de continuar.")
+            return  
+
+        if estado_asistencia == "Rechazado":
+            bot.reply_to(message, "❌ Tu solicitud de asistencia fue rechazada. Contacta a tu gestora para más información.")
+            return  
+
+        if estado_asistencia != "Acceso":
+            bot.reply_to(message, "⛔ No tienes acceso en este momento. Contacta a soporte.")
+            return  
+
+        # ✅ Si la asistencia fue aprobada, permitir acceso
+        mensaje = (
+            "✅ ¡Bienvenido al bot de seguimiento de órdenes! 🎉\n\n"
+            "Aquí puedes buscar información sobre tus órdenes utilizando el comando:\n"
+            "/vt [CodiSeguiClien] \n\n"
+            "👤 Información del creador: /creador\n"
+        )
+        bot.reply_to(message, mensaje)
+
+    except requests.exceptions.RequestException as e:
+        bot.reply_to(message, "⚠️ Error al verificar acceso. Inténtalo más tarde.")
+        print(f"❌ Error en la API de validación: {e}")
 
 
 @bot.message_handler(commands=['vt'])
