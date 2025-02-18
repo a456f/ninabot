@@ -1,7 +1,7 @@
 import os
 import telebot
 import pandas as pd
-import threading
+
 import webbrowser
 from datetime import datetime, time, timedelta
 from telebot import types
