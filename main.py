@@ -134,6 +134,7 @@ def ver_ruta_archivos(message):
 def espacio_usado(message):
     espacio = os.popen("df -h /app").read()
     bot.send_message(message.chat.id, f"📊 *Uso de espacio en Railway:*\n```\n{espacio}\n```", parse_mode="Markdown")
+    
 @bot.message_handler(commands=['asistencia'])
 def solicitar_ubicacion(message):
     user_id = message.from_user.id
