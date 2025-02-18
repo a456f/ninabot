@@ -901,9 +901,6 @@ def buscar_orden(message):
             mensaje_exito = f"✅ Usuario {user_id} buscó la orden {ordenid}."
             print(mensaje_exito)
 
-            # Insertar mensaje en la interfaz gráfica
-            mensajes_texto.insert(tk.END, mensaje_exito + "\n")
-
 
             resultado = usuarios_df[usuarios_df['CodiSeguiClien'] == int(ordenid)]
 
@@ -917,7 +914,7 @@ def buscar_orden(message):
             # Mensaje de éxito para la interfaz gráfica
             mensaje_exito = f"✅ Usuario {user_id} buscó la orden {ordenid} exitosamente."
             print(mensaje_exito)
-            mensajes_texto.insert(tk.END, mensaje_exito + "\n")
+         
 
             bot.send_message(
                 message.chat.id,
@@ -1174,9 +1171,6 @@ def mostrar_info(message):
     )
     bot.reply_to(message, info)
 
-def agregar_registro(texto):
-    mensajes_texto.insert(tk.END, f"{datetime.now().strftime('%H:%M:%S')} - {texto}\n")
-    mensajes_texto.yview(tk.END)
 
 def actualizar_estado(texto, color):
     # Asegúrate de que 'estado_label' esté definido en tu interfaz
