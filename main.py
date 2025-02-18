@@ -131,6 +131,118 @@ def ver_ruta_archivos(message):
 def espacio_usado(message):
     espacio = os.popen("df -h /app").read()
     bot.send_message(message.chat.id, f"📊 *Uso de espacio en Railway:*\n```\n{espacio}\n```", parse_mode="Markdown")
+@bot.message_handler(commands=['asistencia'])
+def solicitar_ubicacion(message):
+    user_id = message.from_user.id
+    try:
+        response = requests.post(API_VALIDAR_USUARIO, json={"user_id": user_id}, timeout=5)
+        data = response.json()
+
+        if not data.get("permitido", False):
+            bot.reply_to(message, "⛔ No tienes acceso para registrar asistencia. Contacta a soporte.")
+            return  
+
+        usuarios_esperando_ubicacion[user_id] = True
+        keyboard = types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
+        boton_ubicacion = types.KeyboardButton(text="📍 Enviar Ubicación", request_location=True)
+        keyboard.add(boton_ubicacion)
+        
+        bot.send_message(message.chat.id, 
+                         "📍 *Comparte tu ubicación para registrar asistencia.*\n\n"
+                         "Presiona el botón de abajo para enviarla automáticamente.",
+                         reply_markup=keyboard, parse_mode="Markdown")
+    except requests.exceptions.RequestException as e:
+        bot.reply_to(message, "⚠️ Error al verificar asistencia. Inténtalo más tarde.")
+        print(f"❌ Error en la API de asistencia: {e}")
+
+@bot.message_handler(content_types=['location'])
+def recibir_ubicacion(message):
+    user_id = message.from_user.id
+    latitud = message.location.latitude
+    longitud = message.location.longitude
+    nombre_tecnico = message.from_user.full_name
+    fecha_actual = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    usuarios_esperando_imagen[user_id] = {
+        "latitud": latitud,
+        "longitud": longitud,
+        "fecha": fecha_actual,
+        "nombre_tecnico": nombre_tecnico
+    }
+
+    bot.reply_to(message, "📸 Ahora envía una foto rotulada para completar tu asistencia.")
+
+@bot.message_handler(content_types=['photo'])
+def recibir_imagen(message):
+    user_id = message.from_user.id
+    if user_id not in usuarios_esperando_imagen:
+        bot.reply_to(message, "⚠️ Primero debes enviar tu ubicación antes de la foto.")
+        return
+    
+    mensaje_carga = bot.reply_to(message, "⏳ Procesando tu solicitud...")
+    
+    datos_ubicacion = usuarios_esperando_imagen[user_id]
+    file_id = message.photo[-1].file_id
+    file_info = bot.get_file(file_id)
+    file_path = file_info.file_path
+    image_url = f"https://api.telegram.org/file/bot{TOKEN}/{file_path}"
+    image_path = f"imagenes/{user_id}.jpg"
+    
+    response = requests.get(image_url, stream=True)
+    if response.status_code == 200:
+        with open(image_path, "wb") as file:
+            for chunk in response.iter_content(1024):
+                file.write(chunk)
+        print(f"✅ Imagen guardada en: {image_path}")
+    else:
+        bot.edit_message_text("⚠️ Error al descargar la imagen.", message.chat.id, mensaje_carga.message_id)
+        return
+    
+    datos = {
+        "user_id": str(user_id),
+        "latitud": str(datos_ubicacion["latitud"]),
+        "longitud": str(datos_ubicacion["longitud"]),
+        "fecha": datos_ubicacion["fecha"]
+    }
+    
+    with open(image_path, "rb") as image_file:
+        files = {"imagen": image_file}
+        try:
+            response = requests.post(API_REGISTRAR_ASISTENCIA, data=datos, files=files, timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                if data.get("asistencia_registrada", False):
+                    mensaje_confirmacion = (
+                        f"✅ *👷‍♂️ {datos_ubicacion['nombre_tecnico']} (ID: {user_id}) ha enviado su asistencia correctamente.*\n\n"
+                        "📌 La gestora revisará tu solicitud y te dará acceso al bot. Por favor, espera su aprobación. ⏳"
+                    )
+                    bot.edit_message_text(mensaje_confirmacion, message.chat.id, mensaje_carga.message_id)
+                    
+                    try:
+                        notification.notify(
+                            title="✅ Solicitud de Acceso",
+                            message=f"El técnico {datos_ubicacion['nombre_tecnico']} (ID: {user_id}) ha enviado asistencia para solicitar acceso al bot.",
+                            app_name="Sistema de Asistencia",
+                            timeout=2
+                        )
+                    except Exception as e:
+                        print(f"Error en la notificación: {e}")
+                else:
+                    mensaje_api = data.get("mensaje", "⛔ No puedes marcar asistencia desde esta ubicación.")
+                    bot.edit_message_text(f"⛔ {mensaje_api}", message.chat.id, mensaje_carga.message_id)
+            else:
+                bot.edit_message_text("⚠️ Error al registrar asistencia. Inténtalo más tarde.", message.chat.id, mensaje_carga.message_id)
+        except requests.exceptions.RequestException as e:
+            bot.edit_message_text("⚠️ Error al registrar asistencia. Inténtalo más tarde.", message.chat.id, mensaje_carga.message_id)
+    
+    try:
+        os.remove(image_path)
+        print(f"🗑️ Imagen eliminada: {image_path}")
+    except Exception as e:
+        print(f"⚠️ No se pudo eliminar la imagen: {e}")
+    
+    usuarios_esperando_imagen.pop(user_id, None)
+
 
 PASSWORD_CORRECTA = "1"
 usuarios_autorizados = {}
