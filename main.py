@@ -168,12 +168,10 @@ def recibir_ubicacion(message):
     latitud = message.location.latitude
     longitud = message.location.longitude
     nombre_tecnico = message.from_user.full_name
-    fecha_actual = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     usuarios_esperando_imagen[user_id] = {
         "latitud": latitud,
         "longitud": longitud,
-        "fecha": fecha_actual,
         "nombre_tecnico": nombre_tecnico
     }
 
