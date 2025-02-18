@@ -56,6 +56,7 @@ CARPETA_ARCHIVOS = "archivos_subidos"
 # Crear la carpeta si no existe
 os.makedirs(CARPETA_ARCHIVOS, exist_ok=True)
 API_VALIDAR_USUARIO = "https://cybernovasystems.com/prueba/sistema_tlc/modelos/telegran/api_validar_usuario.php"
+
 API_REGISTRAR_ASISTENCIA = "https://cybernovasystems.com/prueba/sistema_tlc/modelos/telegran/api_registrar_asistencia.php"
 
 def cargar_datos_excel():
