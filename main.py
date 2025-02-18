@@ -218,8 +218,8 @@ def recibir_imagen(message: Message):
     datos = {
         "user_id": str(user_id),
         "latitud": str(datos_ubicacion["latitud"]),
-        "longitud": str(datos_ubicacion["longitud"]),
-        "fecha": datos_ubicacion["fecha"]
+        "longitud": str(datos_ubicacion["longitud"])
+     
     }
     
     # Enviar imagen y datos a la API
