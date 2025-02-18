@@ -54,6 +54,7 @@ CARPETA_ARCHIVOS = "archivos_subidos"
 
 # 📌 Diccionario para almacenar temporalmente los usuarios que deben enviar ubicación
 usuarios_esperando_ubicacion = {}
+
 usuarios_esperando_imagen = {}
 
 # Crear la carpeta si no existe
