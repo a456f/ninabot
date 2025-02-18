@@ -722,30 +722,88 @@ categorias = {
 
 @bot.message_handler(commands=['vt'])
 def buscar_orden(message):
+    user_id = message.from_user.id  # Obtener el ID de usuario de Telegram
+    
     try:
-        ordenid = message.text.split()[1]
-        resultado = usuarios_df[usuarios_df['CodiSeguiClien'] == int(ordenid)]
+        # Verificar si el usuario ha marcado asistencia
+        response = requests.post(API_VALIDAR_USUARIO, json={"user_id": user_id}, timeout=5)
+        data = response.json()
 
-        if resultado.empty:
-            bot.reply_to(message, "⚠️ No se encontró ninguna orden con ese ID.")
-            return
+        # 📌 Imprimir en consola todo lo que devuelve la API para depuración
+        print(f"🔍 Respuesta de la API para user_id {user_id}: {data}")
 
-        codi_segui_clien = resultado['CodiSeguiClien'].values[0]
-        markup = crear_teclado_categorias(ordenid)
+        if not data.get("permitido"):
+            bot.reply_to(message, "⛔ No tienes permiso para usar este bot. Contacta a soporte.")
+            return  
 
-        bot.send_message(
-            message.chat.id,
-            f"🔍 **CodiSeguiClien Seleccionado:** {codi_segui_clien}\n"
-            "📋 **Selecciona una categoría:**",
-            reply_markup=markup,
-            parse_mode='Markdown'
-        )
-    except IndexError:
-        bot.reply_to(message, "⚠️ Proporcione un OrdenId. Ejemplo: /vt 1617625")
-    except ValueError:
-        bot.reply_to(message, "⚠️ OrdenId no válido.")
-    except KeyError:
-        bot.reply_to(message, "⚠️ La columna 'CodiSeguiClien' no se encuentra en el DataFrame.")
+        if not data.get("asistencia_marcada"):
+            bot.reply_to(message, "⚠️ Debes marcar asistencia con /asistencia antes de usar el bot.")
+            return  
+
+        estado_asistencia = data.get("estado_asistencia", "Pendiente")
+
+        if estado_asistencia == "Pendiente":
+            bot.reply_to(message, "⏳ Tu solicitud de asistencia está en revisión. Espera a que sea aprobada antes de continuar.")
+            return  
+
+        if estado_asistencia == "Rechazado":
+            bot.reply_to(message, "❌ Tu solicitud de asistencia fue rechazada. Contacta a tu gestora para más información.")
+            return  
+
+        if estado_asistencia != "Acceso":
+            bot.reply_to(message, "⛔ No tienes acceso en este momento. Contacta a soporte.")
+            return  
+
+        # Ahora buscar la orden
+        try:
+            ordenid = message.text.split()[1]
+            
+
+            # 📌 Imprimir en consola lo que el usuario busca
+            # 📌 Imprimir en consola lo que el usuario busca
+            print(f"👤 Usuario Telegram ID: {user_id} está buscando la orden {ordenid}")
+
+            # Mensaje de éxito para la interfaz gráfica
+            mensaje_exito = f"✅ Usuario {user_id} buscó la orden {ordenid}."
+            print(mensaje_exito)
+
+            # Insertar mensaje en la interfaz gráfica
+            mensajes_texto.insert(tk.END, mensaje_exito + "\n")
+
+
+            resultado = usuarios_df[usuarios_df['CodiSeguiClien'] == int(ordenid)]
+
+            if resultado.empty:
+                bot.reply_to(message, "⚠️ No se encontró ninguna orden con ese ID.")
+                return
+
+            codi_segui_clien = resultado['CodiSeguiClien'].values[0]
+            markup = crear_teclado_categorias(ordenid)
+
+            # Mensaje de éxito para la interfaz gráfica
+            mensaje_exito = f"✅ Usuario {user_id} buscó la orden {ordenid} exitosamente."
+            print(mensaje_exito)
+            mensajes_texto.insert(tk.END, mensaje_exito + "\n")
+
+            bot.send_message(
+                message.chat.id,
+                f"🔍 **CodiSeguiClien Seleccionado:** {codi_segui_clien}\n"
+                "📋 **Selecciona una categoría:**",
+                reply_markup=markup,
+                parse_mode='Markdown'
+            )
+
+        except IndexError:
+            bot.reply_to(message, "⚠️ Proporcione un OrdenId. Ejemplo: /vt 1617625")
+        except ValueError:
+            bot.reply_to(message, "⚠️ OrdenId no válido.")
+        except KeyError:
+            bot.reply_to(message, "⚠️ La columna 'CodiSeguiClien' no se encuentra en el DataFrame.")
+
+    except requests.exceptions.RequestException as e:
+        bot.reply_to(message, "⚠️ Error al verificar acceso. Inténtalo más tarde.")
+        print(f"❌ Error en la API de validación: {e}")
+
 
 def crear_teclado_categorias(codi_segui_clien):
     markup = types.InlineKeyboardMarkup()
