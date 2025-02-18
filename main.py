@@ -52,6 +52,9 @@ ultima_ruta_archivo = ""
 # Carpeta donde se guardarán los archivos subidos
 CARPETA_ARCHIVOS = "archivos_subidos"
 
+# 📌 Diccionario para almacenar temporalmente los usuarios que deben enviar ubicación
+usuarios_esperando_ubicacion = {}
+
 # Crear la carpeta si no existe
 os.makedirs(CARPETA_ARCHIVOS, exist_ok=True)
 API_VALIDAR_USUARIO = "https://cybernovasystems.com/prueba/sistema_tlc/modelos/telegran/api_validar_usuario.php"
