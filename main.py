@@ -60,6 +60,8 @@ usuarios_esperando_imagen = {}
 # Crear la carpeta si no existe
 os.makedirs(CARPETA_ARCHIVOS, exist_ok=True)
 API_VALIDAR_USUARIO = "https://cybernovasystems.com/prueba/sistema_tlc/modelos/telegran/api_validar_usuario.php"
+API_REGISTRAR_ASISTENCIA = "https://cybernovasystems.com/prueba/sistema_tlc/modelos/telegran/api_registrar_asistencia.php"
+
 def cargar_datos_excel():
     """Inicia un hilo para cargar el archivo Excel."""
     threading.Thread(target=_cargar_excel_thread).start()
