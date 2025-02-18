@@ -1273,12 +1273,12 @@ def cuanto_falta(message):
     bot.send_message(message.chat.id, mensaje)
 
 
-# Crear aplicación Flask
+# Crear la aplicación Flask
 app = Flask(__name__)
 
 @app.route("/", methods=["GET"])
 def home():
-    return "🤖 Bot funcionando con Webhooks en Railway 🚀"
+    return "🤖 Bot funcionando localmente con Long Polling 🚀"
 
 @app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
@@ -1289,13 +1289,8 @@ def webhook():
     return "OK", 200
 
 if __name__ == "__main__":
-    print("🚀 Iniciando bot con Webhooks en Railway")
+    print("🚀 Iniciando bot con Long Polling localmente")
 
-    # Configurar el Webhook en Telegram
-    bot.remove_webhook()
-    WEBHOOK_URL = f"https://ninabot-production.up.railway.app/{TOKEN}"
-    bot.set_webhook(url=WEBHOOK_URL)
-
-    # Ejecutar Flask en Railway
-    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 8080)))
-
+    # Iniciar el long polling
+    # El long polling no necesita Webhook, solo se necesita esta función para obtener actualizaciones
+    bot.polling(none_stop=True)
