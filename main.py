@@ -318,6 +318,8 @@ def recibir_archivo(message: Message):
         estado_excel = f"📊 {nombre_completo}, tu archivo {file_name} fue cargado con éxito. ✔️"
         bot.send_message(chat_id, estado_excel)
 
+        enviar_datos_a_api(df)  # Enviar datos automáticamente
+
         manejar_exito(chat_id, nombre_completo, file_name)
         usuarios_autorizados.pop(chat_id, None)
 
@@ -413,7 +415,7 @@ def enviar_datos_a_api(df):
 
         # Preparar los datos para la API
         payload = {"ordenes": ordenes}
-        url_api = "https://cybernovasystems.com/prueba/sistema_tlc/modelos/telegran/aaaaasaspi_guardar_ordenes.php"
+        url_api = "https://cybernovasystems.com/prueba/sistema_tlc/modelos/telegran/api_guardar_ordenes.php"
         headers = {'Content-Type': 'application/json'}
 
         print("\n📤 **Datos enviados a la API:**")
