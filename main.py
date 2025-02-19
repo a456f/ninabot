@@ -263,7 +263,7 @@ def pedir_contraseña(message: Message):
 def verificar_contraseña(message: Message):
     """Verifica la contraseña y da permiso temporal si es correcta."""
     chat_id = message.chat.id
-    if message.text.strip() == PASSWORD_CORRECTA:
+    if message.text is not None and message.text.strip() == PASSWORD_CORRECTA:
         usuarios_autorizados[chat_id] = tm.time()  # Guarda el tiempo de autorización
         bot.send_message(chat_id, "✅ Contraseña correcta. Ahora envía tu archivo Excel.")
     else:
