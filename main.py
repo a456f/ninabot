@@ -423,20 +423,17 @@ def enviar_datos_a_api(df):
         print(respuesta_api)
 
         if 'mensaje' in respuesta_api:
-            messagebox.showinfo("Éxito", respuesta_api["mensaje"])
+            print(f"✅ Éxito: {respuesta_api['mensaje']}")
         else:
-            messagebox.showerror("Error", "\n".join(respuesta_api.get("errores", ["Error desconocido"])))
+            print(f"❌ Error: {respuesta_api.get('errores', ['Error desconocido'])}")
 
     except requests.exceptions.RequestException as e:
-        messagebox.showerror("Error", f"⚠️ No se pudo conectar con la API: {e}")
         print(f"❌ Error de conexión con la API: {e}")
 
     except json.JSONDecodeError as e:
-        messagebox.showerror("Error", "⚠️ Respuesta de la API no es JSON válido.")
         print(f"❌ Error en la respuesta JSON de la API: {e}")
 
     except Exception as e:
-        messagebox.showerror("Error", f"⚠️ Ocurrió un error inesperado: {e}")
         print(f"❌ Error inesperado: {e}")
 
 
