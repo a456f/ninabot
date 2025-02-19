@@ -120,23 +120,7 @@ def detectar_fila_inicio(file_path):
     except Exception as e:
         print(f"❌ Error detectando la fila de inicio: {e}")
     return None
-@bot.message_handler(commands=['ver_archivos'])
-def ver_archivos(message):
-    archivos = os.popen("ls -lah /app").read()
-    bot.send_message(message.chat.id, f"📂 Archivos:\n{archivos}")
 
-@bot.message_handler(commands=['ver_ruta'])
-def ver_ruta_archivos(message):
-    ruta = "/app/archivos_subidos/"
-    archivos = os.listdir(ruta)
-    lista_archivos = "\n".join(archivos) if archivos else "📂 (Vacío)"
-    bot.send_message(message.chat.id, f"📂 Ruta de archivos subidos:\n{ruta}\n\n📜 Contenido:\n{lista_archivos}")
-
-@bot.message_handler(commands=['espacio'])
-def espacio_usado(message):
-    espacio = os.popen("df -h /app").read()
-    bot.send_message(message.chat.id, f"📊 *Uso de espacio en Railway:*\n```\n{espacio}\n```", parse_mode="Markdown")
-    
 usuarios_esperando_ubicacion = {}
 usuarios_esperando_imagen = {}
 
