@@ -275,7 +275,7 @@ def recibir_archivo(message: Message):
     global usuarios_df, estado_excel
     chat_id = message.chat.id
 
-    if chat_id not in usuarios_autorizados or (time.time() - usuarios_autorizados[chat_id] > 300):
+    if chat_id not in usuarios_autorizados or (tm.time() - usuarios_autorizados[chat_id] > 300):
         bot.send_message(chat_id, "⛔ No tienes permiso para subir archivos. Usa /subir para autenticarte primero.")
         return
 
