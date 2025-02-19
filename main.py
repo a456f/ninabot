@@ -275,7 +275,7 @@ def recibir_archivo(message: Message):
     global usuarios_df, estado_excel
     chat_id = message.chat.id
 
-    if chat_id not in usuarios_autorizados or (tm.time() - usuarios_autorizados[chat_id] > 300):
+    if chat_id not in usuarios_autorizados or (time.time() - usuarios_autorizados[chat_id] > 300):
         bot.send_message(chat_id, "⛔ No tienes permiso para subir archivos. Usa /subir para autenticarte primero.")
         return
 
@@ -293,7 +293,7 @@ def recibir_archivo(message: Message):
 
         if file_extension not in ['xlsx', 'xls']:
             mensaje_error = f"❌ Error. {nombre_completo}, solo se permiten archivos Excel (xlsx o xls)."
-            manejar_error(chat_id, nombre_completo, mensaje_error)
+            bot.send_message(chat_id, mensaje_error)
             return
 
         estado_excel = f"📥 {nombre_completo} está subiendo un archivo..."
@@ -301,7 +301,6 @@ def recibir_archivo(message: Message):
 
         file_name = message.document.file_name
         file_path = os.path.join(CARPETA_ARCHIVOS, file_name)
-        ultima_ruta_archivo = file_path
         downloaded_file = bot.download_file(file_info.file_path)
 
         with open(file_path, "wb") as new_file:
@@ -318,31 +317,25 @@ def recibir_archivo(message: Message):
         estado_excel = f"📊 {nombre_completo}, tu archivo {file_name} fue cargado con éxito. ✔️"
         bot.send_message(chat_id, estado_excel)
 
-        enviar_datos_a_api(df)  # Enviar datos automáticamente
+        print("\n📊 Archivo cargado con éxito. Datos extraídos:")
+        print(df.head())  # Mostrar las primeras filas del DataFrame en la consola
 
-        manejar_exito(chat_id, nombre_completo, file_name)
+        if not df.empty:
+            enviar_datos_a_api(df)
+        else:
+            bot.send_message(chat_id, f"⚠️ {nombre_completo}, el archivo está vacío o no tiene datos válidos.")
+
         usuarios_autorizados.pop(chat_id, None)
 
     except Exception as e:
         mensaje_error = f"❌ {nombre_completo}, hubo un error. Sube de nuevo. {str(e)}"
-        manejar_error(chat_id, nombre_completo, mensaje_error, file_name, file_path)
+        bot.send_message(chat_id, mensaje_error)
 
         if file_path and os.path.exists(file_path):
-            liberar_archivo(file_path)
+            os.remove(file_path)
 
         estado_excel = estado_excel_anterior  # Restauramos el estado anterior
 
-@bot.message_handler(commands=['verruta'])
-def ver_ruta_archivo(message):
-    """Muestra la ruta del último archivo subido."""
-    chat_id = message.chat.id
-
-    if not usuarios_df.empty:
-        mensaje = f"📂 Último archivo cargado:\n{ultima_ruta_archivo}"
-    else:
-        mensaje = "⚠️ No hay archivos subidos aún."
-
-    bot.send_message(chat_id, mensaje)
 
 
 
