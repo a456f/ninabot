@@ -1262,6 +1262,13 @@ def webhook():
 if __name__ == "__main__":
     print("🚀 Iniciando bot con Long Polling localmente")
 
-    # Iniciar el long polling
-    # El long polling no necesita Webhook, solo se necesita esta función para obtener actualizaciones
-    bot.polling(none_stop=True)
+    while True:
+        try:
+            bot.polling(none_stop=True, timeout=60, long_polling_timeout=60)
+        except telebot.apihelper.ApiException as e:
+            print(f"⚠️ Error en la API de Telegram: {e}")
+        except Exception as e:
+            print(f"⚠️ Error inesperado: {e}")
+        
+        print("🔄 Reintentando en 5 segundos...")
+        time.sleep(5)  # Espera antes de reintentar
