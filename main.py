@@ -7,7 +7,7 @@ from datetime import datetime, time, timedelta
 from telebot import types
 from geopy.geocoders import Nominatim
 import numpy as np
-import time as tm  # Evitar conflicto con `time` de `datetime`
+import time as tm  # ✅ Solo una vez
 import requests
 import json
 import shutil
@@ -20,8 +20,8 @@ import pytz
 from telebot.types import Message  # Asegura que esté importado
 from dotenv import load_dotenv
 import textwrap
-import time as tm
-from flask import Flask, request
+from flask import Flask, request  # ✅ Sin duplicados
+
 
 # Cargar variables de entorno desde un archivo .env
 load_dotenv()
@@ -1271,4 +1271,4 @@ if __name__ == "__main__":
             print(f"⚠️ Error inesperado: {e}")
         
         print("🔄 Reintentando en 5 segundos...")
-        datetime.sleep(5)  # Espera antes de reintentar
+        tm.sleep(5)  # ✅ Corrección: usar `tm.sleep(5)` en lugar de `datetime.datetime.sleep(5)`
