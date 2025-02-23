@@ -18,6 +18,7 @@ import platform
 import psutil  # Información de CPU y RAM
 import pytz
 from telebot.types import Message  # Asegura que esté importado
+from telebot.util import escape_markdown  # ✅ Para corregir errores de formato en MarkdownV2
 from dotenv import load_dotenv
 import textwrap
 from flask import Flask, request  # ✅ Sin duplicados
@@ -1041,20 +1042,23 @@ def plantilla_seleccionada(call):
         # Enviar mensaje de "Cargando plantilla..."
         loading_message = bot.send_message(call.message.chat.id, "🔄 Cargando plantilla...")
 
-        # Generar la plantilla con los datos disponibles
         mensaje_plantilla = seleccionar_plantilla(
-            tipo_trabajo, dni, ordenid, cliente, sn_actual, direccion,
-            producto, cuadrilla, motivo_trabajo, estado, region,
-            motivo_regestion, distrito, tecnico, zona, telefono, codigo, ticket, ot
+          tipo_trabajo, dni, ordenid, cliente, sn_actual, direccion,
+          producto, cuadrilla, motivo_trabajo, estado, region,
+          motivo_regestion, distrito, tecnico, zona, telefono, codigo, ticket, ot
         )
 
-        # Editar el mensaje de carga para mostrar la plantilla
+     # Escapar caracteres para evitar errores de MarkdownV2
+        mensaje_plantilla = escape_markdown(mensaje_plantilla, version=2)
+
+     # Editar el mensaje con MarkdownV2
         bot.edit_message_text(
-            chat_id=call.message.chat.id,
-            message_id=loading_message.message_id,
-            text=mensaje_plantilla,
-            parse_mode='Markdown'
+         chat_id=call.message.chat.id,
+         message_id=loading_message.message_id,
+         text=mensaje_plantilla,
+         parse_mode='MarkdownV2'
         )
+
 
     except ValueError as e:
         bot.send_message(call.message.chat.id, f"⚠️ Hubo un problema con los datos recibidos: {str(e)}")
