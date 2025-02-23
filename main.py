@@ -1052,9 +1052,11 @@ def plantilla_seleccionada(call):
           producto, cuadrilla, motivo_trabajo, estado, region,
           motivo_regestion, distrito, tecnico, zona, telefono, codigo, ticket, ot
         )
-
+        # Eliminar los `**` del mensaje
+        mensaje_plantilla = mensaje_plantilla.replace("**", "")
      # Escapar caracteres para evitar errores de MarkdownV2
         mensaje_plantilla = escape_markdown_v2(mensaje_plantilla)
+        
 
      # Editar el mensaje con MarkdownV2
         bot.edit_message_text(
