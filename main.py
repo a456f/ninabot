@@ -18,7 +18,6 @@ import platform
 import psutil  # Información de CPU y RAM
 import pytz
 from telebot.types import Message  # Asegura que esté importado
-from telebot.util import escape_markdown  # ✅ Para corregir errores de formato en MarkdownV2
 from dotenv import load_dotenv
 import textwrap
 from flask import Flask, request  # ✅ Sin duplicados
@@ -971,6 +970,12 @@ def obtener_distrito(latitud, longitud):
 def safe_str(value):
     # Asegura que el valor sea siempre un string limpio
     return str(value).strip() if value else 'N/D'
+    
+def escape_markdown_v2(text):
+    caracteres_especiales = r"*_[]()~`>#+-=|{}.!"
+    for char in caracteres_especiales:
+        text = text.replace(char, f"\\{char}")  # Escapar con '\'
+    return text
 
 @bot.callback_query_handler(func=lambda call: '|' in call.data)
 def plantilla_seleccionada(call):
@@ -1049,7 +1054,7 @@ def plantilla_seleccionada(call):
         )
 
      # Escapar caracteres para evitar errores de MarkdownV2
-        mensaje_plantilla = escape_markdown(mensaje_plantilla, version=2)
+        mensaje_plantilla = escape_markdown_v2(mensaje_plantilla)
 
      # Editar el mensaje con MarkdownV2
         bot.edit_message_text(
