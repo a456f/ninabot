@@ -390,14 +390,25 @@ def liberar_archivo(file_path):
 def enviar_datos_a_api(df):
     """Convierte los datos del DataFrame en JSON y los envía a la API automáticamente."""
     try:
+        # 🔍 Verificar valores únicos antes de procesarlos
+        print("Valores únicos en OrdenId antes de conversión:", df['OrdenId'].unique())
+
+        # 🔄 Convertir OrdenId a número de forma segura
+        df['OrdenId'] = pd.to_numeric(df['OrdenId'], errors='coerce')
+
+        # 🚨 Eliminar filas con OrdenId no numérico
+        df = df.dropna(subset=['OrdenId'])
+
+        print("Valores únicos en OrdenId después de conversión:", df['OrdenId'].unique())
+
         ordenes = []
 
         for _, row in df.iterrows():
             orden = {
-                "orden_id": int(row['OrdenId']),  # ID principal, debe ser entero
+                "orden_id": int(row['OrdenId']) if pd.notna(row['OrdenId']) else None,
                 "codigo_seguimiento": int(row['CodiSeguiClien']) if pd.notna(row.get('CodiSeguiClien')) else None,
                 "cuadrilla": str(row.get('Cuadrilla', 'Desconocida')),
-                "cliente": str(row.get('Cliente', 'No especificada')),
+                "cliente": str(row.get('Cliente', 'No especificado')),
                 "estado": str(row.get('Estado', 'En Revisión')),
                 "direccion": str(row.get('Direccion', 'No especificada')),
                 "dni": str(row.get('Número Documento', 'No disponible')),
@@ -406,19 +417,16 @@ def enviar_datos_a_api(df):
             }
             ordenes.append(orden)
 
-        # Preparar los datos para la API
         payload = {"ordenes": ordenes}
         url_api = "https://cybernovasystems.com/prueba/sistema_tlc/modelos/telegran/api_guardar_ordenes.php"
         headers = {'Content-Type': 'application/json'}
 
         print("\n📤 **Datos enviados a la API:**")
-        print(json.dumps(payload, indent=4, ensure_ascii=False))  # Mostrar JSON en consola
+        print(json.dumps(payload, indent=4, ensure_ascii=False))  
 
-        # Enviar datos a la API
-        response = requests.post(url_api, json=payload, headers=headers)  # Usar `json=payload` en lugar de `data=`
+        response = requests.post(url_api, json=payload, headers=headers)
         respuesta_api = response.json()
 
-        # Mostrar respuesta de la API
         print("\n📥 **Respuesta de la API:**")
         print(respuesta_api)
 
@@ -435,6 +443,7 @@ def enviar_datos_a_api(df):
 
     except Exception as e:
         print(f"❌ Error inesperado: {e}")
+
 
 
 # def actualizar_estado_excel(texto, color):
