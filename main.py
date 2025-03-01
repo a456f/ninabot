@@ -996,8 +996,11 @@ def plantilla_seleccionada(call):
         # Confirmar la plantilla seleccionada al usuario
         bot.send_message(call.message.chat.id, f"📝 Plantilla seleccionada: *{tipo_trabajo}*", parse_mode='Markdown')
 
+        # Convertir ordenid a número de forma segura
+        ordenid = int(float(ordenid))  # ✅ Solución aplicada
+
         # Buscar datos del cliente con el ID de la orden
-        resultado = usuarios_df[usuarios_df['CodiSeguiClien'] == int(ordenid)]
+        resultado = usuarios_df[usuarios_df['CodiSeguiClien'] == ordenid]
 
         if resultado.empty:
             bot.send_message(call.message.chat.id, "⚠️ No se encontraron datos de la orden seleccionada.")
@@ -1012,10 +1015,7 @@ def plantilla_seleccionada(call):
 
         # Manejo de dirección evitando nulos o vacíos
         direccion = datos.get('Direccion') or datos.get('Direccion1', 'N/D')
-
-        # Actualizar 'direccion' para que contenga solo la parte antes de "||REFERENCIA:"
         direccion = direccion.split('||REFERENCIA:')[0].strip()
-
 
         # Función para validar números y evitar errores con NaN
         def safe_int(value):
@@ -1064,11 +1064,10 @@ def plantilla_seleccionada(call):
         )
         # Eliminar los `**` del mensaje
         mensaje_plantilla = mensaje_plantilla.replace("**", "")
-     # Escapar caracteres para evitar errores de MarkdownV2
+        # Escapar caracteres para evitar errores de MarkdownV2
         mensaje_plantilla = escape_markdown_v2(mensaje_plantilla)
-        
 
-     # Editar el mensaje con MarkdownV2
+        # Editar el mensaje con MarkdownV2
         bot.edit_message_text(
          chat_id=call.message.chat.id,
          message_id=loading_message.message_id,
@@ -1076,9 +1075,9 @@ def plantilla_seleccionada(call):
          parse_mode='MarkdownV2'
         )
 
-
     except ValueError as e:
         bot.send_message(call.message.chat.id, f"⚠️ Hubo un problema con los datos recibidos: {str(e)}")
+
 
 
 @bot.message_handler(commands=['start'])
