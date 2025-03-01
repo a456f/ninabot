@@ -68,7 +68,6 @@ def _cargar_excel_thread():
     """Carga el archivo Excel, detecta la fila de inicio y envía los datos a la API."""
     global usuarios_df, estado_excel
     try:
-        # Seleccionar archivo Excel
         file_path = filedialog.askopenfilename(
             title="Seleccionar archivo Excel",
             filetypes=[("Archivos Excel", "*.xlsx;*.xls")]
@@ -77,12 +76,11 @@ def _cargar_excel_thread():
             print("❌ No se seleccionó ningún archivo.")
             return
 
-        # Guardar el archivo en la carpeta `archivos_subidos`
-        file_name = os.path.basename(file_path)  # Obtener solo el nombre del archivo
+        file_name = os.path.basename(file_path)
         new_file_path = os.path.join(CARPETA_ARCHIVOS, file_name)
-        shutil.copy(file_path, new_file_path)  # Copiar el archivo a la carpeta destino
+        shutil.copy(file_path, new_file_path)
 
-        # Detectar la fila donde inicia la data
+        # Detectar la fila de inicio
         fila_inicio = detectar_fila_inicio(new_file_path)
         if fila_inicio is None:
             raise ValueError("⚠️ No se encontró la columna 'CodiSeguiClien'.")
@@ -91,35 +89,33 @@ def _cargar_excel_thread():
 
         # Cargar datos desde la fila detectada
         df = pd.read_excel(new_file_path, skiprows=fila_inicio - 1)
-        df.columns = df.columns.str.strip()  # Eliminar espacios en los nombres de columnas
+        df.columns = df.columns.str.strip()  
+
+        # **Detectar valores problemáticos en OrdenId**
+        if 'OrdenId' in df.columns:
+            print("Valores únicos en OrdenId antes de la conversión:", df['OrdenId'].unique())
+
+            # **Convertir a número y eliminar errores**
+            df['OrdenId'] = pd.to_numeric(df['OrdenId'], errors='coerce')
+            df = df.dropna(subset=['OrdenId'])  # Eliminar filas con valores no numéricos en OrdenId
+
+            print("Valores únicos en OrdenId después de la conversión:", df['OrdenId'].unique())
+
         usuarios_df = df
 
-        # Mostrar una muestra de los datos en consola
         print("\n🔍 **Primeras 5 filas del DataFrame cargado:**")
         print(df.head())
 
         estado_excel = f"📊 Archivo Excel Cargado: {file_name} ✔️"
         messagebox.showinfo("Éxito", f"Archivo cargado y almacenado en {CARPETA_ARCHIVOS}: {file_name}")
 
-        # Llamar a la función para enviar datos automáticamente
+        # Enviar datos a la API
         enviar_datos_a_api(df)
 
     except Exception as e:
         messagebox.showerror("Error", f"⚠️ Ocurrió un error: {e}")
         print(f"❌ Error al cargar el archivo Excel: {e}")
 
-def detectar_fila_inicio(file_path):
-    """Detecta la fila donde se encuentra la columna 'CodiSeguiClien'."""
-    try:
-        excel_data = pd.ExcelFile(file_path)
-        for sheet in excel_data.sheet_names:
-            df = pd.read_excel(file_path, sheet_name=sheet, header=None)
-            for i, row in df.iterrows():
-                if 'CodiSeguiClien' in row.values:
-                    return i + 1  # Devuelve la fila donde se encuentra
-    except Exception as e:
-        print(f"❌ Error detectando la fila de inicio: {e}")
-    return None
 
 usuarios_esperando_ubicacion = {}
 usuarios_esperando_imagen = {}
