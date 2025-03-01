@@ -391,18 +391,18 @@ def enviar_datos_a_api(df):
     """Convierte los datos del DataFrame en JSON y los envía a la API automáticamente."""
     try:
         # 🔍 Verificar valores únicos antes de procesarlos
-        print("Valores únicos en OrdenId antes de conversión:", df['OrdenId'].unique())
+        for col in df.columns:
+            if df[col].dtype == 'object':  # Solo revisa columnas de texto
+                print(f"📌 Valores únicos en {col}:", df[col].unique()[:10])  # Muestra primeros 10 valores
 
-        # 🔄 Convertir OrdenId a número de forma segura
+        # 🔄 Convertir 'OrdenId' y 'CodiSeguiClien' a número de forma segura
         df['OrdenId'] = pd.to_numeric(df['OrdenId'], errors='coerce')
+        df['CodiSeguiClien'] = pd.to_numeric(df['CodiSeguiClien'], errors='coerce')
 
-        # 🚨 Eliminar filas con OrdenId no numérico
+        # 🚨 Eliminar filas con OrdenId o CodiSeguiClien no numéricos
         df = df.dropna(subset=['OrdenId'])
 
-        print("Valores únicos en OrdenId después de conversión:", df['OrdenId'].unique())
-
         ordenes = []
-
         for _, row in df.iterrows():
             orden = {
                 "orden_id": int(row['OrdenId']) if pd.notna(row['OrdenId']) else None,
@@ -443,6 +443,7 @@ def enviar_datos_a_api(df):
 
     except Exception as e:
         print(f"❌ Error inesperado: {e}")
+
 
 
 
