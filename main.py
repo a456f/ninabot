@@ -117,6 +117,19 @@ def _cargar_excel_thread():
         print(f"❌ Error al cargar el archivo Excel: {e}")
 
 
+def detectar_fila_inicio(file_path):
+    """Detecta la fila donde se encuentra la columna 'CodiSeguiClien'."""
+    try:
+        excel_data = pd.ExcelFile(file_path)
+        for sheet in excel_data.sheet_names:
+            df = pd.read_excel(file_path, sheet_name=sheet, header=None)
+            for i, row in df.iterrows():
+                if 'CodiSeguiClien' in row.values:
+                    return i + 1  # Devuelve la fila donde se encuentra
+    except Exception as e:
+        print(f"❌ Error detectando la fila de inicio: {e}")
+    return None
+    
 usuarios_esperando_ubicacion = {}
 usuarios_esperando_imagen = {}
 
