@@ -386,7 +386,6 @@ def liberar_archivo(file_path):
             time.sleep(1)
 
 
-
 def enviar_datos_a_api(df):
     """Convierte los datos del DataFrame en JSON y los envía a la API automáticamente."""
     try:
@@ -403,13 +402,21 @@ def enviar_datos_a_api(df):
         df = df.dropna(subset=['OrdenId'])
 
         # 🔄 Formatear FechaUltiEsta
-        # Primero convertimos a datetime, luego al formato deseado
         df['FechaUltiEsta'] = pd.to_datetime(df['FechaUltiEsta'], errors='coerce') \
                                 .dt.strftime('%d/%m/%Y %H:%M:%S') \
                                 .fillna('00/00/0000 00:00:00')
 
         ordenes = []
+
         for _, row in df.iterrows():
+            # 📌 Extraer código CTO del campo COMENTARIO
+            comentario_raw = str(row.get('COMENTARIO', ''))
+            match_cto = re.search(r'(W-[^;]+)', comentario_raw, re.IGNORECASE)
+            codigo_cto = match_cto.group(1) if match_cto else None
+
+            # 🧾 Extraer todo el bloque de datos técnicos (si lo deseas almacenar completo)
+            datos_tecnicos = comentario_raw.strip()
+
             orden = {
                 "orden_id": int(row['OrdenId']),
                 "codigo_seguimiento": int(row['CodiSeguiClien']) if pd.notna(row['CodiSeguiClien']) else None,
@@ -420,10 +427,11 @@ def enviar_datos_a_api(df):
                 "dni": str(row.get('Número Documento', 'No disponible')),
                 "telefono": str(row.get('TeleMovilNume', 'No disponible')),
                 "ticket": str(row.get('CodiSegui', 'No asignado')),
-                # Campos nuevos
                 "zona": str(row.get('Zona', 'No especificada')),
                 "tipo_traba": str(row.get('TipoTraba', 'No especificado')),
-                "fecha_ulti_esta": row['FechaUltiEsta']
+                "fecha_ulti_esta": row['FechaUltiEsta'],
+                "codigo_cto": codigo_cto,  # ✅ Código CTO extraído
+                "datos_tecnicos": datos_tecnicos  # 🔧 Bloque completo
             }
             ordenes.append(orden)
 
@@ -453,7 +461,6 @@ def enviar_datos_a_api(df):
 
     except Exception as e:
         print(f"❌ Error inesperado: {e}")
-
 
 
 # def actualizar_estado_excel(texto, color):
