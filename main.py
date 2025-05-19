@@ -12,6 +12,7 @@ import requests
 import json
 import shutil
 import glob
+import re
 from gtts import gTTS
 import pygame  # O usa `playsound`, pero no ambos
 import platform
