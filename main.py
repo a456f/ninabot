@@ -395,25 +395,35 @@ def enviar_datos_a_api(df):
             if df[col].dtype == 'object':  # Solo revisa columnas de texto
                 print(f"📌 Valores únicos en {col}:", df[col].unique()[:10])  # Muestra primeros 10 valores
 
-        # 🔄 Convertir 'OrdenId' y 'CodiSeguiClien' a número de forma segura
+        # 🚧 Convertir columnas numéricas de forma segura
         df['OrdenId'] = pd.to_numeric(df['OrdenId'], errors='coerce')
         df['CodiSeguiClien'] = pd.to_numeric(df['CodiSeguiClien'], errors='coerce')
 
-        # 🚨 Eliminar filas con OrdenId o CodiSeguiClien no numéricos
+        # 🚨 Eliminar filas con OrdenId no numérico
         df = df.dropna(subset=['OrdenId'])
+
+        # 🔄 Formatear FechaUltiEsta
+        # Primero convertimos a datetime, luego al formato deseado
+        df['FechaUltiEsta'] = pd.to_datetime(df['FechaUltiEsta'], errors='coerce') \
+                                .dt.strftime('%d/%m/%Y %H:%M:%S') \
+                                .fillna('00/00/0000 00:00:00')
 
         ordenes = []
         for _, row in df.iterrows():
             orden = {
-                "orden_id": int(row['OrdenId']) if pd.notna(row['OrdenId']) else None,
-                "codigo_seguimiento": int(row['CodiSeguiClien']) if pd.notna(row.get('CodiSeguiClien')) else None,
+                "orden_id": int(row['OrdenId']),
+                "codigo_seguimiento": int(row['CodiSeguiClien']) if pd.notna(row['CodiSeguiClien']) else None,
                 "cuadrilla": str(row.get('Cuadrilla', 'Desconocida')),
                 "cliente": str(row.get('Cliente', 'No especificado')),
                 "estado": str(row.get('Estado', 'En Revisión')),
                 "direccion": str(row.get('Direccion', 'No especificada')),
                 "dni": str(row.get('Número Documento', 'No disponible')),
                 "telefono": str(row.get('TeleMovilNume', 'No disponible')),
-                "ticket": str(row.get('CodiSegui', 'No asignado'))
+                "ticket": str(row.get('CodiSegui', 'No asignado')),
+                # Campos nuevos
+                "zona": str(row.get('Zona', 'No especificada')),
+                "tipo_traba": str(row.get('TipoTraba', 'No especificado')),
+                "fecha_ulti_esta": row['FechaUltiEsta']
             }
             ordenes.append(orden)
 
@@ -422,7 +432,7 @@ def enviar_datos_a_api(df):
         headers = {'Content-Type': 'application/json'}
 
         print("\n📤 **Datos enviados a la API:**")
-        print(json.dumps(payload, indent=4, ensure_ascii=False))  
+        print(json.dumps(payload, indent=4, ensure_ascii=False))
 
         response = requests.post(url_api, json=payload, headers=headers)
         respuesta_api = response.json()
@@ -443,7 +453,6 @@ def enviar_datos_a_api(df):
 
     except Exception as e:
         print(f"❌ Error inesperado: {e}")
-
 
 
 
