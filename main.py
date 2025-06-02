@@ -387,34 +387,66 @@ def liberar_archivo(file_path):
         except PermissionError:
             time.sleep(1)
 
+
+# Handler para el comando /zip (solo archivos Excel del 21 de mayo de 2025)
 @bot.message_handler(commands=['zip'])
 def enviar_zip(message: Message):
     chat_id = message.chat.id
-    zip_path = comprimir_archivos_subidos()
+    zip_path = comprimir_excel_por_fecha("2025-05-21")  # Fecha objetivo: 2025-05-21
 
-    if os.path.exists(zip_path):
+    if zip_path and os.path.exists(zip_path):
         with open(zip_path, 'rb') as archivo_zip:
             bot.send_document(chat_id, archivo_zip)
         print("✅ ZIP enviado correctamente")
     else:
-        bot.send_message(chat_id, "❌ No se pudo crear el archivo ZIP.")
-def comprimir_archivos_subidos():
+        bot.send_message(chat_id, "❌ No se encontraron archivos Excel para esa fecha o no se pudo crear el ZIP.")
+
+def comprimir_excel_por_fecha(fecha_str):
+    """
+    Comprime en un ZIP todos los archivos .xls/.xlsx de la carpeta 'archivos_subidos'
+    cuya fecha de modificación coincida con fecha_str (formato 'YYYY-MM-DD').
+    Devuelve la ruta del ZIP creado o None si no hay archivos que coincidan.
+    """
     carpeta = "archivos_subidos"
-    zip_path = "archivos_comprimidos.zip"
+    zip_dest = "excel_21_mayo_2025.zip"
 
     if not os.path.exists(carpeta):
-        print("❌ La carpeta no existe.")
+        print("❌ La carpeta 'archivos_subidos' no existe.")
         return None
 
-    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        for root, _, files in os.walk(carpeta):
-            for file in files:
-                file_path = os.path.join(root, file)
-                arcname = os.path.relpath(file_path, carpeta)
-                zipf.write(file_path, arcname)
+    # Convertir la cadena a objeto date
+    try:
+        fecha_obj = datetime.strptime(fecha_str, "%Y-%m-%d").date()
+    except ValueError:
+        print("❌ Formato de fecha inválido. Debe ser 'YYYY-MM-DD'.")
+        return None
 
-    return zip_path
+    archivos_filtrados = []
+    for nombre in os.listdir(carpeta):
+        ruta = os.path.join(carpeta, nombre)
+        if os.path.isfile(ruta):
+            # Solo considerar archivos .xls y .xlsx
+            ext = nombre.lower().split('.')[-1]
+            if ext not in ['xls', 'xlsx']:
+                continue
 
+            # Obtener fecha de modificación
+            fecha_mod = datetime.fromtimestamp(os.path.getmtime(ruta)).date()
+            if fecha_mod == fecha_obj:
+                archivos_filtrados.append(ruta)
+
+    if not archivos_filtrados:
+        print(f"⚠️ No se encontraron archivos Excel modificados el {fecha_str}.")
+        return None
+
+    # Crear el ZIP con los archivos filtrados
+    with zipfile.ZipFile(zip_dest, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for ruta_archivo in archivos_filtrados:
+            arcname = os.path.basename(ruta_archivo)
+            zipf.write(ruta_archivo, arcname=arcname)
+
+    print(f"✅ ZIP creado: {zip_dest} ({len(archivos_filtrados)} archivos)")
+    return zip_dest
 
 
 def enviar_datos_a_api(df):
