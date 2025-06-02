@@ -1,4 +1,5 @@
 import os
+import zipfile
 import telebot
 import pandas as pd
 import threading
@@ -385,6 +386,34 @@ def liberar_archivo(file_path):
             break
         except PermissionError:
             time.sleep(1)
+
+@bot.message_handler(commands=['zip'])
+def enviar_zip(message: Message):
+    chat_id = message.chat.id
+    zip_path = comprimir_archivos_subidos()
+
+    if os.path.exists(zip_path):
+        with open(zip_path, 'rb') as archivo_zip:
+            bot.send_document(chat_id, archivo_zip)
+        print("✅ ZIP enviado correctamente")
+    else:
+        bot.send_message(chat_id, "❌ No se pudo crear el archivo ZIP.")
+def comprimir_archivos_subidos():
+    carpeta = "archivos_subidos"
+    zip_path = "archivos_comprimidos.zip"
+
+    if not os.path.exists(carpeta):
+        print("❌ La carpeta no existe.")
+        return None
+
+    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for root, _, files in os.walk(carpeta):
+            for file in files:
+                file_path = os.path.join(root, file)
+                arcname = os.path.relpath(file_path, carpeta)
+                zipf.write(file_path, arcname)
+
+    return zip_path
 
 
 
