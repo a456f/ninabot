@@ -62,11 +62,13 @@ def obtener_ultimo_archivo_xlsx(folder, segundos_max=60):
     archivos_recientes = [f for f in archivos if ahora - os.path.getmtime(f) < segundos_max]
     return sorted(archivos_recientes, key=os.path.getmtime, reverse=True)[0] if archivos_recientes else None
 
+# === VARIABLES GLOBALES ===
 modo_activo_2 = False
 chat_id_global_2 = None
-usuarios_autorizados_2 = {}
+usuario_activador = None
 CLAVE_ENCENDER_2 = "185946"
 CLAVE_APAGAR_2 = "4582"
+usuarios_autorizados_2 = {}
 
 def exportar_y_enviar_2(chat_id):
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
@@ -153,53 +155,45 @@ def exportar_handler(msg):
 
 @bot2.message_handler(commands=['encender'])
 def encender_handler(msg):
-    global modo_activo_2, chat_id_global_2, usuarios_autorizados_2
     if modo_activo_2:
-        usuario = "Desconocido"
-        try:
-            user_info = bot2.get_chat(chat_id_global_2)
-            usuario = user_info.first_name or "Usuario"
-        except:
-            pass
-        bot2.send_message(msg.chat.id, f"⚠️ El bot ya está ENCENDIDO por {usuario}. No se puede encender de nuevo.")
+        bot2.send_message(msg.chat.id, f"⚠️ El bot ya está *ENCENDIDO* por *{usuario_activador or 'otro usuario'}*.", parse_mode="Markdown")
         return
-    if msg.chat.id not in usuarios_autorizados_2:
-        bot2.send_message(msg.chat.id, "🔐 Envía la clave para activar el modo automático.")
-        return
-    modo_activo_2 = True
-    chat_id_global_2 = msg.chat.id
-    usuarios_autorizados_2[msg.chat.id] = True
-    bot2.send_message(msg.chat.id, "✅ Modo automático ACTIVADO.")
+    bot2.send_message(msg.chat.id, "🔐 Envía la clave para activar el modo automático:")
+    bot2.register_next_step_handler(msg, verificar_clave_encendido)
+
+def verificar_clave_encendido(msg):
+    global modo_activo_2, chat_id_global_2, usuario_activador
+    if msg.text.strip() == CLAVE_ENCENDER_2:
+        modo_activo_2 = True
+        chat_id_global_2 = msg.chat.id
+        usuario_activador = msg.from_user.first_name or "Usuario"
+        usuarios_autorizados_2[msg.chat.id] = True
+        bot2.send_message(msg.chat.id, f"✅ Modo automático ACTIVADO por *{usuario_activador}*.", parse_mode="Markdown")
+    else:
+        bot2.send_message(msg.chat.id, "❌ Clave incorrecta. No se activó el bot.")
 
 @bot2.message_handler(commands=['apagar'])
 def apagar_handler(msg):
-    global modo_activo_2, chat_id_global_2
+    global modo_activo_2, chat_id_global_2, usuario_activador
     if not modo_activo_2:
-        bot2.send_message(msg.chat.id, "⚠️ El bot ya está APAGADO.")
+        bot2.send_message(msg.chat.id, "⚠️ El bot ya está *APAGADO*.", parse_mode="Markdown")
         return
-    if msg.chat.id not in usuarios_autorizados_2:
-        bot2.send_message(msg.chat.id, "🔐 Envía la clave para apagar.")
+    if msg.chat.id != chat_id_global_2:
+        bot2.send_message(msg.chat.id, "🔒 Solo el usuario que lo encendió puede apagarlo.")
         return
     modo_activo_2 = False
     chat_id_global_2 = None
-    usuarios_autorizados_2.pop(msg.chat.id, None)
+    usuario_activador = None
     bot2.send_message(msg.chat.id, "🛑 Modo automático DESACTIVADO.")
 
 @bot2.message_handler(commands=['estado'])
 def estado_handler(msg):
-    global modo_activo_2, chat_id_global_2
     if modo_activo_2:
-        usuario = "Desconocido"
-        try:
-            user_info = bot2.get_chat(chat_id_global_2)
-            usuario = user_info.first_name or "Usuario"
-        except:
-            pass
-        bot2.send_message(msg.chat.id, f"✅ El bot está *ENCENDIDO* por {usuario}.", parse_mode="Markdown")
+        bot2.send_message(msg.chat.id, f"✅ El bot está *ENCENDIDO* por *{usuario_activador}*.", parse_mode="Markdown")
     else:
         bot2.send_message(msg.chat.id, "❌ El bot está *APAGADO*.", parse_mode="Markdown")
 
+# === INICIAR BOT ===
 threading.Thread(target=bucle_automatico_2, daemon=True).start()
-
 print("🤖 Segundo bot ejecutándose...")
 bot2.polling()
