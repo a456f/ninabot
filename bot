@@ -11,21 +11,21 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 
-# Funciones auxiliares necesarias
+# Importa funciones auxiliares
 from main import detectar_fila_inicio, enviar_datos_a_api
 
-# === Configuración del segundo bot ===
-TOKEN_2 = '7922512452:AAGhfzYMzhJPfV1TA1dBy2w6hICCIXHdNds'
+# Token del bot (fijo en el código)
+TOKEN_2 = "7922512452:AAGhfzYMzhJPfV1TA1dBy2w6hICCIXHdNds"
 bot2 = telebot.TeleBot(TOKEN_2)
 
-# === Ruta multiplataforma para descarga ===
+# Carpeta donde se descargan los archivos (multiplataforma)
 if platform.system() == "Windows":
     DOWNLOAD_FOLDER = os.path.join(os.getcwd(), "descargas")
 else:
     DOWNLOAD_FOLDER = "/mnt/data"
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 
-# === Opciones del navegador ===
+# Configuración de opciones para ChromeDriver (descarga automática)
 options = webdriver.ChromeOptions()
 prefs = {
     "download.default_directory": DOWNLOAD_FOLDER,
@@ -38,13 +38,11 @@ options.add_argument('--headless')
 options.add_argument('--no-sandbox')
 options.add_argument('--disable-dev-shm-usage')
 
-# === Barra visual de progreso ===
 def barra(seg, total=10, largo=10):
     llenado = int((seg / total) * largo)
     porcentaje = int((seg / total) * 100)
     return '🟦' * llenado + '⬜️' * (largo - llenado) + f' ({porcentaje}%)'
 
-# === Actualizar mensaje con progreso ===
 def actualizar_mensaje(bot, chat_id, msg_id, estado_actual, barra_progreso=""):
     pasos = {
         1: "🔑 Iniciando sesión...",
@@ -62,21 +60,18 @@ def actualizar_mensaje(bot, chat_id, msg_id, estado_actual, barra_progreso=""):
     except:
         pass
 
-# === Obtener el archivo más reciente ===
 def obtener_ultimo_archivo_xlsx(folder, segundos_max=60):
     ahora = time.time()
     archivos = [os.path.join(folder, f) for f in os.listdir(folder) if f.endswith(".xlsx")]
     archivos_recientes = [f for f in archivos if ahora - os.path.getmtime(f) < segundos_max]
     return sorted(archivos_recientes, key=os.path.getmtime, reverse=True)[0] if archivos_recientes else None
 
-# === Variables globales ===
 modo_activo_2 = False
 chat_id_global_2 = None
 usuarios_autorizados_2 = {}
 CLAVE_ENCENDER_2 = "185946"
 CLAVE_APAGAR_2 = "4582"
 
-# === Proceso de exportación ===
 def exportar_y_enviar_2(chat_id):
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
     wait = WebDriverWait(driver, 30)
@@ -87,19 +82,27 @@ def exportar_y_enviar_2(chat_id):
         wait.until(EC.presence_of_element_located((By.ID, "txtUsuario"))).send_keys("brubio")
         wait.until(EC.presence_of_element_located((By.ID, "txtPassword"))).send_keys("M123456789")
         driver.find_element(By.ID, "BtnLoginInicial").click()
-        for i in range(1, 6): actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 1, barra(i, 5)); time.sleep(0.25)
+        for i in range(1, 6):
+            actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 1, barra(i, 5))
+            time.sleep(0.25)
 
         wait.until(EC.presence_of_element_located((By.ID, "menuSistema")))
         driver.execute_script("AbrirPagi('Paginas/OperadoresBO/misOrdenes.aspx?to=1&nombre=Seguimiento+de+Ordenes&id=74&icono=&edit=S','74');")
-        for i in range(1, 6): actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 2, barra(i, 5)); time.sleep(0.25)
+        for i in range(1, 6):
+            actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 2, barra(i, 5))
+            time.sleep(0.25)
 
         filtrar_btn = wait.until(EC.presence_of_element_located((By.ID, "BtnFiltrar74")))
         driver.execute_script("arguments[0].click();", filtrar_btn)
-        for i in range(1, 11): actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 3, barra(i)); time.sleep(0.35)
+        for i in range(1, 11):
+            actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 3, barra(i))
+            time.sleep(0.35)
 
         exportar_btn = wait.until(EC.presence_of_element_located((By.XPATH, "//a[contains(., 'Exportar')]")))
         driver.execute_script("arguments[0].click();", exportar_btn)
-        for i in range(1, 11): actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 4, barra(i)); time.sleep(0.35)
+        for i in range(1, 11):
+            actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 4, barra(i))
+            time.sleep(0.35)
 
         driver.execute_script("arguments[0].click();", wait.until(EC.presence_of_element_located((By.ID, "spnNotiCampa"))))
         time.sleep(2)
@@ -141,8 +144,8 @@ def exportar_y_enviar_2(chat_id):
     finally:
         driver.quit()
 
-# === Bucle automático ===
 def bucle_automatico_2():
+    global modo_activo_2, chat_id_global_2
     while True:
         if modo_activo_2 and chat_id_global_2:
             try:
@@ -153,7 +156,6 @@ def bucle_automatico_2():
                 bot2.send_message(chat_id_global_2, f"⚠️ Error en automático:\n{e}")
         time.sleep(120)
 
-# === Comandos del bot ===
 @bot2.message_handler(commands=['start'])
 def start_handler(msg):
     bot2.send_message(msg.chat.id, "Hola, este es el segundo bot de exportación automática.")
@@ -165,36 +167,12 @@ def exportar_handler(msg):
 @bot2.message_handler(commands=['encender'])
 def encender_handler(msg):
     global modo_activo_2, chat_id_global_2
-
     if msg.chat.id not in usuarios_autorizados_2:
         bot2.send_message(msg.chat.id, "🔐 Envía la clave para activar el modo automático.")
         return
-
-    if modo_activo_2:
-        try:
-            chat_info = bot2.get_chat(chat_id_global_2)
-            nombre_activador = f"{chat_info.first_name or ''} {chat_info.last_name or ''}".strip()
-            bot2.send_message(
-                msg.chat.id,
-                f"⚠️ El modo automático ya está activado por {nombre_activador} (ID: `{chat_id_global_2}`)",
-                parse_mode="Markdown"
-            )
-        except:
-            bot2.send_message(
-                msg.chat.id,
-                f"⚠️ El modo automático ya está activado por otro usuario (ID: `{chat_id_global_2}`)",
-                parse_mode="Markdown"
-            )
-        return
-
     modo_activo_2 = True
     chat_id_global_2 = msg.chat.id
-    nombre = f"{msg.from_user.first_name or ''} {msg.from_user.last_name or ''}".strip()
-    bot2.send_message(
-        msg.chat.id,
-        f"✅ Modo automático ACTIVADO por {nombre} (ID: `{msg.chat.id}`)",
-        parse_mode="Markdown"
-    )
+    bot2.send_message(msg.chat.id, "✅ Modo automático ACTIVADO.")
 
 @bot2.message_handler(commands=['apagar'])
 def apagar_handler(msg):
@@ -204,23 +182,7 @@ def apagar_handler(msg):
     modo_activo_2 = False
     bot2.send_message(msg.chat.id, "🛑 Modo automático DESACTIVADO.")
 
-@bot2.message_handler(commands=['estado'])
-def estado_handler(msg):
-    if modo_activo_2 and chat_id_global_2:
-        try:
-            chat_info = bot2.get_chat(chat_id_global_2)
-            nombre_usuario = f"{chat_info.first_name or ''} {chat_info.last_name or ''}".strip()
-            bot2.send_message(
-                msg.chat.id,
-                f"✅ *Modo automático está ACTIVADO*.\n👤 Activado por: `{nombre_usuario}` (ID: `{chat_id_global_2}`)",
-                parse_mode="Markdown"
-            )
-        except:
-            bot2.send_message(msg.chat.id, f"✅ Modo automático ACTIVADO\n(ID: `{chat_id_global_2}`)", parse_mode="Markdown")
-    else:
-        bot2.send_message(msg.chat.id, "🛑 *Modo automático está DESACTIVADO.*", parse_mode="Markdown")
-
-# Iniciar el bucle
+# Iniciar hilo del bucle automático y el polling del bot
 threading.Thread(target=bucle_automatico_2, daemon=True).start()
 print("🤖 Segundo bot ejecutándose...")
 bot2.polling()
