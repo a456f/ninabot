@@ -11,21 +11,17 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 
-# Importa funciones auxiliares
 from main import detectar_fila_inicio, enviar_datos_a_api
 
-# Token del bot (fijo en el código)
-TOKEN_2 = "7922512452:AAGhfzYMzhJPfV1TA1dBy2w6hICCIXHdNds"
+TOKEN_2 = '7922512452:AAGhfzYMzhJPfV1TA1dBy2w6hICCIXHdNds'
 bot2 = telebot.TeleBot(TOKEN_2)
 
-# Carpeta donde se descargan los archivos (multiplataforma)
 if platform.system() == "Windows":
     DOWNLOAD_FOLDER = os.path.join(os.getcwd(), "descargas")
 else:
     DOWNLOAD_FOLDER = "/mnt/data"
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 
-# Configuración de opciones para ChromeDriver (descarga automática)
 options = webdriver.ChromeOptions()
 prefs = {
     "download.default_directory": DOWNLOAD_FOLDER,
@@ -82,27 +78,19 @@ def exportar_y_enviar_2(chat_id):
         wait.until(EC.presence_of_element_located((By.ID, "txtUsuario"))).send_keys("brubio")
         wait.until(EC.presence_of_element_located((By.ID, "txtPassword"))).send_keys("M123456789")
         driver.find_element(By.ID, "BtnLoginInicial").click()
-        for i in range(1, 6):
-            actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 1, barra(i, 5))
-            time.sleep(0.25)
+        for i in range(1, 6): actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 1, barra(i, 5)); time.sleep(0.25)
 
         wait.until(EC.presence_of_element_located((By.ID, "menuSistema")))
         driver.execute_script("AbrirPagi('Paginas/OperadoresBO/misOrdenes.aspx?to=1&nombre=Seguimiento+de+Ordenes&id=74&icono=&edit=S','74');")
-        for i in range(1, 6):
-            actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 2, barra(i, 5))
-            time.sleep(0.25)
+        for i in range(1, 6): actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 2, barra(i, 5)); time.sleep(0.25)
 
         filtrar_btn = wait.until(EC.presence_of_element_located((By.ID, "BtnFiltrar74")))
         driver.execute_script("arguments[0].click();", filtrar_btn)
-        for i in range(1, 11):
-            actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 3, barra(i))
-            time.sleep(0.35)
+        for i in range(1, 11): actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 3, barra(i)); time.sleep(0.35)
 
         exportar_btn = wait.until(EC.presence_of_element_located((By.XPATH, "//a[contains(., 'Exportar')]")))
         driver.execute_script("arguments[0].click();", exportar_btn)
-        for i in range(1, 11):
-            actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 4, barra(i))
-            time.sleep(0.35)
+        for i in range(1, 11): actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 4, barra(i)); time.sleep(0.35)
 
         driver.execute_script("arguments[0].click();", wait.until(EC.presence_of_element_located((By.ID, "spnNotiCampa"))))
         time.sleep(2)
@@ -145,7 +133,6 @@ def exportar_y_enviar_2(chat_id):
         driver.quit()
 
 def bucle_automatico_2():
-    global modo_activo_2, chat_id_global_2
     while True:
         if modo_activo_2 and chat_id_global_2:
             try:
@@ -166,23 +153,53 @@ def exportar_handler(msg):
 
 @bot2.message_handler(commands=['encender'])
 def encender_handler(msg):
-    global modo_activo_2, chat_id_global_2
+    global modo_activo_2, chat_id_global_2, usuarios_autorizados_2
+    if modo_activo_2:
+        usuario = "Desconocido"
+        try:
+            user_info = bot2.get_chat(chat_id_global_2)
+            usuario = user_info.first_name or "Usuario"
+        except:
+            pass
+        bot2.send_message(msg.chat.id, f"⚠️ El bot ya está ENCENDIDO por {usuario}. No se puede encender de nuevo.")
+        return
     if msg.chat.id not in usuarios_autorizados_2:
         bot2.send_message(msg.chat.id, "🔐 Envía la clave para activar el modo automático.")
         return
     modo_activo_2 = True
     chat_id_global_2 = msg.chat.id
+    usuarios_autorizados_2[msg.chat.id] = True
     bot2.send_message(msg.chat.id, "✅ Modo automático ACTIVADO.")
 
 @bot2.message_handler(commands=['apagar'])
 def apagar_handler(msg):
     global modo_activo_2, chat_id_global_2
-    bot2.send_message(msg.chat.id, "🔐 Envía la clave para apagar.")
-    chat_id_global_2 = None
+    if not modo_activo_2:
+        bot2.send_message(msg.chat.id, "⚠️ El bot ya está APAGADO.")
+        return
+    if msg.chat.id not in usuarios_autorizados_2:
+        bot2.send_message(msg.chat.id, "🔐 Envía la clave para apagar.")
+        return
     modo_activo_2 = False
+    chat_id_global_2 = None
+    usuarios_autorizados_2.pop(msg.chat.id, None)
     bot2.send_message(msg.chat.id, "🛑 Modo automático DESACTIVADO.")
 
-# Iniciar hilo del bucle automático y el polling del bot
+@bot2.message_handler(commands=['estado'])
+def estado_handler(msg):
+    global modo_activo_2, chat_id_global_2
+    if modo_activo_2:
+        usuario = "Desconocido"
+        try:
+            user_info = bot2.get_chat(chat_id_global_2)
+            usuario = user_info.first_name or "Usuario"
+        except:
+            pass
+        bot2.send_message(msg.chat.id, f"✅ El bot está *ENCENDIDO* por {usuario}.", parse_mode="Markdown")
+    else:
+        bot2.send_message(msg.chat.id, "❌ El bot está *APAGADO*.", parse_mode="Markdown")
+
 threading.Thread(target=bucle_automatico_2, daemon=True).start()
+
 print("🤖 Segundo bot ejecutándose...")
 bot2.polling()
