@@ -165,9 +165,28 @@ def exportar_handler(msg):
 @bot2.message_handler(commands=['encender'])
 def encender_handler(msg):
     global modo_activo_2, chat_id_global_2
+
     if msg.chat.id not in usuarios_autorizados_2:
         bot2.send_message(msg.chat.id, "🔐 Envía la clave para activar el modo automático.")
         return
+
+    if modo_activo_2:
+        try:
+            chat_info = bot2.get_chat(chat_id_global_2)
+            nombre_activador = f"{chat_info.first_name or ''} {chat_info.last_name or ''}".strip()
+            bot2.send_message(
+                msg.chat.id,
+                f"⚠️ El modo automático ya está activado por {nombre_activador} (ID: `{chat_id_global_2}`)",
+                parse_mode="Markdown"
+            )
+        except:
+            bot2.send_message(
+                msg.chat.id,
+                f"⚠️ El modo automático ya está activado por otro usuario (ID: `{chat_id_global_2}`)",
+                parse_mode="Markdown"
+            )
+        return
+
     modo_activo_2 = True
     chat_id_global_2 = msg.chat.id
     nombre = f"{msg.from_user.first_name or ''} {msg.from_user.last_name or ''}".strip()
