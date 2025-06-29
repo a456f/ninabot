@@ -62,8 +62,6 @@ ultima_ruta_archivo = ""
 # Carpeta donde se guardarán los archivos subidos
 CARPETA_ARCHIVOS = "archivos_subidos"
 
-# Funciones auxiliares necesarias
-from funciones_excel import detectar_fila_inicio, enviar_datos_a_api
 
 # === Configuración del segundo bot ===
 TOKEN_2 = '7922512452:AAGhfzYMzhJPfV1TA1dBy2w6hICCIXHdNds'
