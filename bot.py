@@ -2,6 +2,7 @@ import os
 import time
 import platform
 import threading
+import traceback
 import telebot
 import pandas as pd
 from selenium import webdriver
@@ -11,21 +12,17 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 
-# Funciones auxiliares necesarias
-from main  import detectar_fila_inicio, enviar_datos_a_api
+from main import detectar_fila_inicio, enviar_datos_a_api
 
-# === Configuración del segundo bot ===
 TOKEN_2 = '7922512452:AAGhfzYMzhJPfV1TA1dBy2w6hICCIXHdNds'
 bot2 = telebot.TeleBot(TOKEN_2)
 
-# === Ruta multiplataforma para descarga ===
 if platform.system() == "Windows":
     DOWNLOAD_FOLDER = os.path.join(os.getcwd(), "descargas")
 else:
     DOWNLOAD_FOLDER = "/mnt/data"
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 
-# === Opciones del navegador ===
 options = webdriver.ChromeOptions()
 prefs = {
     "download.default_directory": DOWNLOAD_FOLDER,
@@ -38,13 +35,11 @@ options.add_argument('--headless')
 options.add_argument('--no-sandbox')
 options.add_argument('--disable-dev-shm-usage')
 
-# === Barra visual de progreso ===
 def barra(seg, total=10, largo=10):
     llenado = int((seg / total) * largo)
     porcentaje = int((seg / total) * 100)
     return '🟦' * llenado + '⬜️' * (largo - llenado) + f' ({porcentaje}%)'
 
-# === Actualizar mensaje con progreso ===
 def actualizar_mensaje(bot, chat_id, msg_id, estado_actual, barra_progreso=""):
     pasos = {
         1: "🔑 Iniciando sesión...",
@@ -62,21 +57,18 @@ def actualizar_mensaje(bot, chat_id, msg_id, estado_actual, barra_progreso=""):
     except:
         pass
 
-# === Obtener el archivo más reciente ===
 def obtener_ultimo_archivo_xlsx(folder, segundos_max=60):
     ahora = time.time()
     archivos = [os.path.join(folder, f) for f in os.listdir(folder) if f.endswith(".xlsx")]
     archivos_recientes = [f for f in archivos if ahora - os.path.getmtime(f) < segundos_max]
     return sorted(archivos_recientes, key=os.path.getmtime, reverse=True)[0] if archivos_recientes else None
 
-# === Variables globales ===
 modo_activo_2 = False
 chat_id_global_2 = None
 usuarios_autorizados_2 = {}
 CLAVE_ENCENDER_2 = "185946"
 CLAVE_APAGAR_2 = "4582"
 
-# === Proceso de exportación ===
 def exportar_y_enviar_2(chat_id):
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
     wait = WebDriverWait(driver, 30)
@@ -137,34 +129,47 @@ def exportar_y_enviar_2(chat_id):
             bot2.edit_message_text("⚠️ El archivo exportado está vacío o mal estructurado.", chat_id, progreso_msg.message_id)
 
     except Exception as e:
+        error = traceback.format_exc()
+        print(f"[ERROR] exportar_y_enviar_2: \n{error}")
         bot2.edit_message_text(f"⚠️ Error durante el proceso:\n{e}", chat_id, progreso_msg.message_id)
     finally:
         driver.quit()
 
-# === Bucle automático ===
 def bucle_automatico_2():
     while True:
         if modo_activo_2 and chat_id_global_2:
             try:
+                print("[INFO] Ejecutando automático...")
                 bot2.send_message(chat_id_global_2, "⏳ Iniciando proceso automático...")
                 exportar_y_enviar_2(chat_id_global_2)
                 bot2.send_message(chat_id_global_2, "✅ Proceso automático terminado.")
             except Exception as e:
+                print(f"[ERROR] bucle_automatico_2: {e}")
                 bot2.send_message(chat_id_global_2, f"⚠️ Error en automático:\n{e}")
         time.sleep(120)
 
-# === Comandos del bot ===
 @bot2.message_handler(commands=['start'])
 def start_handler(msg):
+    print(f"[COMANDO] /start ejecutado por {msg.chat.username or msg.chat.first_name}")
     bot2.send_message(msg.chat.id, "Hola, este es el segundo bot de exportación automática.")
 
 @bot2.message_handler(commands=['exportar'])
 def exportar_handler(msg):
-    exportar_y_enviar_2(msg.chat.id)
+    print(f"[COMANDO] /exportar ejecutado por {msg.chat.username or msg.chat.first_name}")
+    try:
+        exportar_y_enviar_2(msg.chat.id)
+    except Exception as e:
+        error = traceback.format_exc()
+        print(f"[ERROR] /exportar: \n{error}")
+        bot2.send_message(msg.chat.id, f"❌ Error inesperado:\n{e}")
 
 @bot2.message_handler(commands=['encender'])
 def encender_handler(msg):
     global modo_activo_2, chat_id_global_2
+    print(f"[COMANDO] /encender ejecutado por {msg.chat.username or msg.chat.first_name}")
+    if modo_activo_2:
+        bot2.send_message(msg.chat.id, "⚠️ El bot ya está ENCENDIDO.")
+        return
     if msg.chat.id not in usuarios_autorizados_2:
         bot2.send_message(msg.chat.id, "🔐 Envía la clave para activar el modo automático.")
         return
@@ -175,12 +180,50 @@ def encender_handler(msg):
 @bot2.message_handler(commands=['apagar'])
 def apagar_handler(msg):
     global modo_activo_2, chat_id_global_2
-    bot2.send_message(msg.chat.id, "🔐 Envía la clave para apagar.")
-    chat_id_global_2 = None
+    print(f"[COMANDO] /apagar ejecutado por {msg.chat.username or msg.chat.first_name}")
+    if not modo_activo_2:
+        bot2.send_message(msg.chat.id, "⚠️ El bot ya está APAGADO.")
+        return
+    if msg.chat.id not in usuarios_autorizados_2:
+        bot2.send_message(msg.chat.id, "🔐 Envía la clave para apagar.")
+        return
     modo_activo_2 = False
+    chat_id_global_2 = None
+    usuarios_autorizados_2.pop(msg.chat.id, None)
     bot2.send_message(msg.chat.id, "🛑 Modo automático DESACTIVADO.")
 
-# Iniciar el bucle
+@bot2.message_handler(commands=['estado'])
+def estado_handler(msg):
+    print(f"[COMANDO] /estado ejecutado por {msg.chat.username or msg.chat.first_name}")
+    if modo_activo_2:
+        bot2.send_message(msg.chat.id, "✅ El bot está *ENCENDIDO*.", parse_mode="Markdown")
+    else:
+        bot2.send_message(msg.chat.id, "❌ El bot está *APAGADO*.", parse_mode="Markdown")
+
+@bot2.message_handler(func=lambda m: True)
+def clave_handler(msg):
+    print(f"[CLAVE] Mensaje recibido: {msg.text} de {msg.chat.username or msg.chat.first_name}")
+    global modo_activo_2, chat_id_global_2
+    if msg.text == CLAVE_ENCENDER_2:
+        usuarios_autorizados_2[msg.chat.id] = True
+        modo_activo_2 = True
+        chat_id_global_2 = msg.chat.id
+        bot2.send_message(msg.chat.id, "✅ Clave correcta. Modo automático ACTIVADO.")
+        print("[INFO] Modo automático ACTIVADO.")
+    elif msg.text == CLAVE_APAGAR_2:
+        if msg.chat.id in usuarios_autorizados_2:
+            modo_activo_2 = False
+            chat_id_global_2 = None
+            usuarios_autorizados_2.pop(msg.chat.id, None)
+            bot2.send_message(msg.chat.id, "🛑 Clave correcta. Bot APAGADO.")
+            print("[INFO] Modo automático DESACTIVADO.")
+        else:
+            bot2.send_message(msg.chat.id, "🔐 No estás autorizado para apagar el bot.")
+    else:
+        if msg.chat.id not in usuarios_autorizados_2:
+            bot2.send_message(msg.chat.id, "❌ Clave incorrecta.")
+            print("[INFO] Clave incorrecta recibida.")
+
 threading.Thread(target=bucle_automatico_2, daemon=True).start()
 print("🤖 Segundo bot ejecutándose...")
 bot2.polling()
