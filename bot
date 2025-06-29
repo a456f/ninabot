@@ -12,7 +12,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 
 # Funciones auxiliares necesarias
-from main  import detectar_fila_inicio, enviar_datos_a_api
+from main import detectar_fila_inicio, enviar_datos_a_api
 
 # === Configuración del segundo bot ===
 TOKEN_2 = '7922512452:AAGhfzYMzhJPfV1TA1dBy2w6hICCIXHdNds'
@@ -170,7 +170,12 @@ def encender_handler(msg):
         return
     modo_activo_2 = True
     chat_id_global_2 = msg.chat.id
-    bot2.send_message(msg.chat.id, "✅ Modo automático ACTIVADO.")
+    nombre = f"{msg.from_user.first_name or ''} {msg.from_user.last_name or ''}".strip()
+    bot2.send_message(
+        msg.chat.id,
+        f"✅ Modo automático ACTIVADO por {nombre} (ID: `{msg.chat.id}`)",
+        parse_mode="Markdown"
+    )
 
 @bot2.message_handler(commands=['apagar'])
 def apagar_handler(msg):
@@ -179,6 +184,22 @@ def apagar_handler(msg):
     chat_id_global_2 = None
     modo_activo_2 = False
     bot2.send_message(msg.chat.id, "🛑 Modo automático DESACTIVADO.")
+
+@bot2.message_handler(commands=['estado'])
+def estado_handler(msg):
+    if modo_activo_2 and chat_id_global_2:
+        try:
+            chat_info = bot2.get_chat(chat_id_global_2)
+            nombre_usuario = f"{chat_info.first_name or ''} {chat_info.last_name or ''}".strip()
+            bot2.send_message(
+                msg.chat.id,
+                f"✅ *Modo automático está ACTIVADO*.\n👤 Activado por: `{nombre_usuario}` (ID: `{chat_id_global_2}`)",
+                parse_mode="Markdown"
+            )
+        except:
+            bot2.send_message(msg.chat.id, f"✅ Modo automático ACTIVADO\n(ID: `{chat_id_global_2}`)", parse_mode="Markdown")
+    else:
+        bot2.send_message(msg.chat.id, "🛑 *Modo automático está DESACTIVADO.*", parse_mode="Markdown")
 
 # Iniciar el bucle
 threading.Thread(target=bucle_automatico_2, daemon=True).start()
