@@ -71,7 +71,7 @@ API_VALIDAR_USUARIO = "https://cybernovasystems.com/prueba/sistema_tlc/modelos/t
 
 API_REGISTRAR_ASISTENCIA = "https://cybernovasystems.com/prueba/sistema_tlc/modelos/telegran/api_registrar_asistencia.php"
 # Eliminar el webhook si está activo
-bot.remove_webhook()
+
 def cargar_datos_excel():
     """Inicia un hilo para cargar el archivo Excel."""
     threading.Thread(target=_cargar_excel_thread).start()
