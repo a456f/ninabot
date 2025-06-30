@@ -71,7 +71,7 @@ def obtener_ultimo_archivo_xlsx(folder, segundos_max=60):
     return sorted(archivos_recientes, key=os.path.getmtime, reverse=True)[0] if archivos_recientes else None
 
 def exportar_y_enviar_2(chat_id):
-    from datetime import datetime
+    from datetime import datetime, timedelta
 
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
     wait = WebDriverWait(driver, 30)
@@ -179,7 +179,7 @@ def bucle_automatico_2():
                     bot2.send_message(chat_id_global_2, f"⚠️ Error en automático:\n{e}")
             else:
                 print("[INFO] Fuera de horario (7:00 a.m. a 8:00 p.m.). Esperando...")
-        time.sleep(300)
+        time.sleep(20)
 
 @bot2.message_handler(commands=['estadoexcel'])
 def estado_excel_handler(msg):
