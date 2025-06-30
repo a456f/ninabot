@@ -459,6 +459,7 @@ def comprimir_excel_por_fecha(fecha_str):
     return zip_dest
 
 
+
 def enviar_datos_a_api(df):
     """Convierte los datos del DataFrame en JSON y los envía a la API automáticamente."""
     try:
@@ -474,11 +475,17 @@ def enviar_datos_a_api(df):
         # 🚨 Eliminar filas con OrdenId no numérico
         df = df.dropna(subset=['OrdenId'])
 
-        # 🔄 Formatear FechaUltiEsta
+        # 🔄 Formatear columnas de fecha
         df['FechaUltiEsta'] = pd.to_datetime(df['FechaUltiEsta'], errors='coerce') \
                                 .dt.strftime('%d/%m/%Y %H:%M:%S') \
                                 .fillna('00/00/0000 00:00:00')
-        
+
+        for col in ['FechaIniVisi', 'FechaFinVisi', 'F.Soli']:
+            if col in df.columns:
+                df[col] = pd.to_datetime(df[col], errors='coerce') \
+                             .dt.strftime('%d/%m/%Y %H:%M:%S') \
+                             .fillna('00/00/0000 00:00:00')
+
         ordenes = []
 
         for _, row in df.iterrows():
@@ -503,8 +510,16 @@ def enviar_datos_a_api(df):
                 "zona": str(row.get('Zona', 'No especificada')),
                 "tipo_traba": str(row.get('TipoTraba', 'No especificado')),
                 "fecha_ulti_esta": row['FechaUltiEsta'],
-                "codigo_cto": codigo_cto,  # ✅ Código CTO extraído
-                "datos_tecnicos": datos_tecnicos  # 🔧 Bloque completo
+                "codigo_cto": codigo_cto,
+                "datos_tecnicos": datos_tecnicos,
+
+                # 🔽 Nuevos campos agregados
+                "sector_operativo": str(row.get('Sector Operativo', 'Desconocido')),
+                "fecha_inicio_visita": str(row.get('FechaIniVisi', '00/00/0000 00:00:00')),
+                "fecha_fin_visita": str(row.get('FechaFinVisi', '00/00/0000 00:00:00')),
+                "producto": str(row.get('Producto', '')),
+                "tipo": str(row.get('Tipo', '')),
+                "fecha_solicitud": str(row.get('F.Soli', '00/00/0000 00:00:00'))
             }
             ordenes.append(orden)
 
