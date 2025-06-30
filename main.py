@@ -463,36 +463,37 @@ def comprimir_excel_por_fecha(fecha_str):
 def enviar_datos_a_api(df):
     """Convierte los datos del DataFrame en JSON y los envía a la API automáticamente."""
     try:
-        # 🔍 Verificar valores únicos antes de procesarlos
-        for col in df.columns:
-            if df[col].dtype == 'object':  # Solo revisa columnas de texto
-                print(f"📌 Valores únicos en {col}:", df[col].unique()[:10])  # Muestra primeros 10 valores
+        # 🔍 Verificar columnas disponibles
+        print("🧪 Columnas en DataFrame:", df.columns.tolist())
 
-        # 🚧 Convertir columnas numéricas de forma segura
+        # 🚧 Convertir columnas numéricas
         df['OrdenId'] = pd.to_numeric(df['OrdenId'], errors='coerce')
         df['CodiSeguiClien'] = pd.to_numeric(df['CodiSeguiClien'], errors='coerce')
 
-        # 🚨 Eliminar filas con OrdenId no numérico
+        # 🧹 Eliminar filas con orden_id inválido
         df = df.dropna(subset=['OrdenId'])
 
-        # 🔄 Formatear todas las columnas de fecha con la misma lógica
+        # 🕒 Formatear fechas
         fechas_a_formatear = ['FechaUltiEsta', 'FechaIniVisi', 'FechaFinVisi', 'F.Soli']
         for col in fechas_a_formatear:
             if col in df.columns:
                 df[col] = pd.to_datetime(df[col], errors='coerce')
-                df[col] = df[col].dt.strftime('%d/%m/%Y %H:%M:%S')
-                df[col] = df[col].fillna('00/00/0000 00:00:00')
+                df[col] = df[col].dt.strftime('%d/%m/%Y %H:%M:%S').fillna('00/00/0000 00:00:00')
 
         ordenes = []
 
         for _, row in df.iterrows():
-            # 📌 Extraer código CTO del campo "Datos Técnicos"
+            # 🧠 Datos técnicos y CTO
             datos_tecnicos_raw = str(row.get('Datos Técnicos', 'Desconocida'))
             match_cto = re.search(r'(W-[^;]+)', datos_tecnicos_raw, re.IGNORECASE)
             codigo_cto = match_cto.group(1) if match_cto else None
-
-            # 🧾 Extraer todo el bloque de datos técnicos (completo)
             datos_tecnicos = datos_tecnicos_raw.strip()
+
+            # ☎️ Manejo de teléfonos
+            telefono_movil = str(row.get('TeleMovilNume', 'No disponible'))
+            telefono_fijo = str(row.get('TeleFijoNume', 'No disponible'))
+            if telefono_fijo.endswith('.0'):
+                telefono_fijo = telefono_fijo[:-2]
 
             orden = {
                 "orden_id": int(row['OrdenId']),
@@ -502,18 +503,15 @@ def enviar_datos_a_api(df):
                 "estado": str(row.get('Estado', 'En Revisión')),
                 "direccion": str(row.get('Direccion', 'No especificada')),
                 "dni": str(row.get('Número Documento', 'No disponible')),
-                "telefono": str(row.get('TeleMovilNume', 'No disponible')),
-                "telefono_fijo": str(row.get('TeleFijoNume', 'No disponible')), 
+                "telefono": telefono_movil,
+                "telefono_fijo": telefono_fijo,
                 "ticket": str(row.get('CodiSegui', 'No asignado')),
                 "zona": str(row.get('Zona', 'No especificada')),
                 "tipo_traba": str(row.get('TipoTraba', 'No especificado')),
-
-                # ✅ Fechas ya tratadas uniformemente
                 "fecha_ulti_esta": row['FechaUltiEsta'],
                 "fecha_inicio_visita": row['FechaIniVisi'],
                 "fecha_fin_visita": row['FechaFinVisi'],
                 "fecha_solicitud": row['F.Soli'],
-
                 "codigo_cto": codigo_cto,
                 "datos_tecnicos": datos_tecnicos,
                 "sector_operativo": str(row.get('Sector Operativo', 'Desconocido')),
@@ -522,18 +520,18 @@ def enviar_datos_a_api(df):
             }
             ordenes.append(orden)
 
-        # 📤 Enviar a la API
+        # 🌐 Enviar datos a API
         payload = {"ordenes": ordenes}
         url_api = "https://cybernovasystems.com/prueba/sistema_tlc/modelos/telegran/api_guardar_ordenes.php"
         headers = {'Content-Type': 'application/json'}
 
-        print("\n📤 **Datos enviados a la API:**")
+        print("\n📤 Datos enviados:")
         print(json.dumps(payload, indent=4, ensure_ascii=False))
 
         response = requests.post(url_api, json=payload, headers=headers)
         respuesta_api = response.json()
 
-        print("\n📥 **Respuesta de la API:**")
+        print("\n📥 Respuesta de la API:")
         print(respuesta_api)
 
         if 'mensaje' in respuesta_api:
@@ -542,13 +540,12 @@ def enviar_datos_a_api(df):
             print(f"❌ Error: {respuesta_api.get('errores', ['Error desconocido'])}")
 
     except requests.exceptions.RequestException as e:
-        print(f"❌ Error de conexión con la API: {e}")
-
+        print(f"❌ Error de conexión: {e}")
     except json.JSONDecodeError as e:
-        print(f"❌ Error en la respuesta JSON de la API: {e}")
-
+        print(f"❌ Error en la respuesta JSON: {e}")
     except Exception as e:
         print(f"❌ Error inesperado: {e}")
+
 # hola
 # def actualizar_estado_excel(texto, color):
 #     estado_excel_label.config(text=f"{texto}", foreground=color)
