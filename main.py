@@ -23,7 +23,7 @@ from telebot.types import Message  # Asegura que esté importado
 from dotenv import load_dotenv
 import textwrap
 from flask import Flask, request  # ✅ Sin duplicados
-
+import estado_global
 
 
 
@@ -55,6 +55,15 @@ ultima_ruta_archivo = ""
 
 # Carpeta donde se guardarán los archivos subidos
 CARPETA_ARCHIVOS = "archivos_subidos"
+
+
+def usar_datos_globales():
+    if estado_global.ultima_ruta_archivo and os.path.exists(estado_global.ultima_ruta_archivo):
+        df = estado_global.usuarios_df
+        print("Datos Excel disponibles en memoria, procesando...")
+        # Aquí llama tus funciones que usan df, o lo manipulas
+    else:
+        print("No hay archivo Excel disponible aún.")
 
 # Crear la carpeta si no existe
 os.makedirs(CARPETA_ARCHIVOS, exist_ok=True)
