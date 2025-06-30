@@ -160,7 +160,7 @@ def bucle_automatico_2():
     while True:
         if modo_activo_2 and chat_id_global_2:
             hora_actual = datetime.now().hour
-            if 7 <= hora_actual < 20:
+            if 7 <= hora_actual < 21:
                 try:
                     print("[INFO] Ejecutando automático...")
                     bot2.send_message(chat_id_global_2, "⏳ Iniciando proceso automático...")
