@@ -12,6 +12,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
+import pytz
 
 import estado_global
 from main import detectar_fila_inicio, enviar_datos_a_api
@@ -156,22 +157,35 @@ def exportar_y_enviar_2(chat_id):
     finally:
         driver.quit()
 
+# Función para obtener la hora actual en Lima
+def hora_actual_lima():
+    zona_lima = pytz.timezone("America/Lima")
+    return datetime.now(zona_lima)
+
 def bucle_automatico_2():
     while True:
-        if modo_activo_2 and chat_id_global_2:
-            hora_actual = datetime.now().hour
-            if 7 <= hora_actual < 21:
-                try:
+        try:
+            if modo_activo_2 and chat_id_global_2:
+                ahora = hora_actual_lima()
+                hora_actual = ahora.hour
+
+                print(f"[DEBUG] Hora actual Lima: {ahora.strftime('%Y-%m-%d %H:%M:%S')}")
+
+                if 7 <= hora_actual < 21:
                     print("[INFO] Ejecutando automático...")
                     bot2.send_message(chat_id_global_2, "⏳ Iniciando proceso automático...")
                     exportar_y_enviar_2(chat_id_global_2)
                     bot2.send_message(chat_id_global_2, "✅ Proceso automático terminado.")
-                except Exception as e:
-                    print(f"[ERROR] bucle_automatico_2: {e}")
-                    bot2.send_message(chat_id_global_2, f"⚠️ Error en automático:\n{e}")
+                else:
+                    print("[INFO] Fuera de horario (7:00 a.m. a 9:00 p.m.). Esperando...")
             else:
-                print("[INFO] Fuera de horario (7:00 a.m. a 8:00 p.m.). Esperando...")
-        time.sleep(300)
+                print("[INFO] Modo automático desactivado o chat_id no definido.")
+        except Exception as e:
+            print(f"[ERROR] bucle_automatico_2: {e}")
+            if chat_id_global_2:
+                bot2.send_message(chat_id_global_2, f"⚠️ Error en automático:\n{e}")
+
+        time.sleep(300)  # Espera 5 minutos
 
 @bot2.message_handler(commands=['info'])
 def info_handler(msg):
