@@ -177,8 +177,9 @@ def bucle_automatico_2():
 
 @bot2.message_handler(commands=['estadoexcel'])
 def estado_excel_handler(msg):
-    estado_global.cargar_estado()
-    bot2.send_message(msg.chat.id, estado_global.estado_excel)
+    estado, _ = estado_global.cargar_estado()
+    bot2.send_message(msg.chat.id, estado)
+
 
 
 # Resto de tus comandos y lógica permanece igual
