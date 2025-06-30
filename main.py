@@ -930,51 +930,50 @@ categorias = {
 
 @bot.message_handler(commands=['vt'])
 def buscar_orden(message):
-    user_id = message.from_user.id  # Obtener el ID de usuario de Telegram
-    
+    global usuarios_df
+    user_id = message.from_user.id
+
     try:
-        # Verificar si el usuario ha marcado asistencia
+        # Verificar acceso
         response = requests.post(API_VALIDAR_USUARIO, json={"user_id": user_id}, timeout=5)
         data = response.json()
-
-        # 📌 Imprimir en consola todo lo que devuelve la API para depuración
         print(f"🔍 Respuesta de la API para user_id {user_id}: {data}")
 
         if not data.get("permitido"):
             bot.reply_to(message, "⛔ No tienes permiso para usar este bot. Contacta a soporte.")
-            return  
-
+            return
         if not data.get("asistencia_marcada"):
             bot.reply_to(message, "⚠️ Debes marcar asistencia con /asistencia antes de usar el bot.")
-            return  
-
-        estado_asistencia = data.get("estado_asistencia", "Pendiente")
-
-        if estado_asistencia == "Pendiente":
-            bot.reply_to(message, "⏳ Tu solicitud de asistencia está en revisión. Espera a que sea aprobada antes de continuar.")
-            return  
-
-        if estado_asistencia == "Rechazado":
-            bot.reply_to(message, "❌ Tu solicitud de asistencia fue rechazada. Contacta a tu gestora para más información.")
-            return  
-
-        if estado_asistencia != "Acceso":
+            return
+        if data.get("estado_asistencia") in ["Pendiente", "Rechazado"]:
+            bot.reply_to(message, f"⏳ Tu solicitud de asistencia está en estado: {data.get('estado_asistencia')}.")
+            return
+        if data.get("estado_asistencia") != "Acceso":
             bot.reply_to(message, "⛔ No tienes acceso en este momento. Contacta a soporte.")
-            return  
+            return
 
-        # Ahora buscar la orden
+        # Recargar Excel si usuarios_df está vacío
+        if usuarios_df.empty:
+            from estado_global import cargar_estado
+            _, ruta = cargar_estado()
+            if ruta and os.path.exists(ruta):
+                fila_inicio = detectar_fila_inicio(ruta)
+                if fila_inicio:
+                    df = pd.read_excel(ruta, skiprows=fila_inicio - 1)
+                    df.columns = df.columns.str.strip().str.replace('\n', '').str.replace('\r', '')
+                    usuarios_df = df
+                    print(f"✅ Excel recargado desde: {ruta}")
+                else:
+                    bot.reply_to(message, "⚠️ No se encontró la fila de inicio en el Excel.")
+                    return
+            else:
+                bot.reply_to(message, "⚠️ No hay archivo Excel cargado. Usa /subir para cargar uno.")
+                return
+
+        # Buscar orden
         try:
             ordenid = message.text.split()[1]
-            
-
-            # 📌 Imprimir en consola lo que el usuario busca
-            # 📌 Imprimir en consola lo que el usuario busca
-            print(f"👤 Usuario Telegram ID: {user_id} está buscando la orden {ordenid}")
-
-            # Mensaje de éxito para la interfaz gráfica
-            mensaje_exito = f"✅ Usuario {user_id} buscó la orden {ordenid}."
-            print(mensaje_exito)
-
+            print(f"👤 Usuario {user_id} busca orden {ordenid}")
 
             resultado = usuarios_df[usuarios_df['CodiSeguiClien'] == int(ordenid)]
 
@@ -985,15 +984,9 @@ def buscar_orden(message):
             codi_segui_clien = resultado['CodiSeguiClien'].values[0]
             markup = crear_teclado_categorias(ordenid)
 
-            # Mensaje de éxito para la interfaz gráfica
-            mensaje_exito = f"✅ Usuario {user_id} buscó la orden {ordenid} exitosamente."
-            print(mensaje_exito)
-         
-
             bot.send_message(
                 message.chat.id,
-                f"🔍 **CodiSeguiClien Seleccionado:** {codi_segui_clien}\n"
-                "📋 **Selecciona una categoría:**",
+                f"🔍 **CodiSeguiClien Seleccionado:** {codi_segui_clien}\n📋 **Selecciona una categoría:**",
                 reply_markup=markup,
                 parse_mode='Markdown'
             )
@@ -1003,7 +996,7 @@ def buscar_orden(message):
         except ValueError:
             bot.reply_to(message, "⚠️ OrdenId no válido.")
         except KeyError:
-            bot.reply_to(message, "⚠️ La columna 'CodiSeguiClien' no se encuentra en el DataFrame.")
+            bot.reply_to(message, "⚠️ La columna 'CodiSeguiClien' no se encuentra en el archivo Excel.")
 
     except requests.exceptions.RequestException as e:
         bot.reply_to(message, "⚠️ Error al verificar acceso. Inténtalo más tarde.")
