@@ -4,68 +4,59 @@ import telebot
 import pandas as pd
 import threading
 import webbrowser
-from datetime import datetime, time, timedelta
+from datetime import datetime
 from telebot import types
 from geopy.geocoders import Nominatim
 import numpy as np
-import time as tm  # ✅ Solo una vez
+import time as tm
 import requests
 import json
 import shutil
 import glob
 import re
 from gtts import gTTS
-import pygame  # O usa `playsound`, pero no ambos
+import pygame
 import platform
-import psutil  # Información de CPU y RAM
+import psutil
 import pytz
 from telebot.types import Message
 from dotenv import load_dotenv
 import textwrap
 from flask import Flask, request
-import estado_global  # ✅ Importar variables globales
+from estado_global import guardar_estado, cargar_estado  # ✅ nuevas funciones
 
-# Cargar variables de entorno desde un archivo .env
+# Cargar variables de entorno
 load_dotenv()
 
 # Zona horaria
 tz_lima = pytz.timezone('America/Lima')
 inicio_bot = datetime.now(tz_lima)
 
-# Cargar token desde .env
+# Cargar token
 TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 if not TOKEN:
     raise ValueError("Error: No se encontró el token de Telegram en las variables de entorno.")
 
 bot = telebot.TeleBot(TOKEN)
 
-# Variables locales
 bot_activo = True
-usuarios_df = estado_global.usuarios_df
-estado_excel = estado_global.estado_excel
-ultima_ruta_archivo = estado_global.ultima_ruta_archivo
 
-# Carpeta para archivos subidos
+# Carpeta de archivos subidos
 CARPETA_ARCHIVOS = "archivos_subidos"
 os.makedirs(CARPETA_ARCHIVOS, exist_ok=True)
 
-# ✅ Sincronización de estado_excel
-def set_estado_excel(nuevo_estado: str):
-    global estado_excel
-    estado_excel = nuevo_estado
-    estado_global.estado_excel = nuevo_estado
+# Cargar estado desde JSON
+estado_excel, ultima_ruta_archivo = cargar_estado()
 
-def get_estado_excel():
-    return estado_global.estado_excel
-
-# ✅ Handlers
+# Handlers
 @bot.message_handler(commands=['estadoexcel'])
 def estado_excel_handler(msg):
-    bot.send_message(msg.chat.id, get_estado_excel())
+    estado, _ = cargar_estado()
+    bot.send_message(msg.chat.id, estado)
 
 @bot.message_handler(commands=['rutaexcel'])
 def ruta_archivo_handler(msg):
-    ruta = estado_global.ultima_ruta_archivo
+    _, ruta = cargar_estado()
     if ruta and os.path.exists(ruta):
         bot.send_message(msg.chat.id, f"📁 Ruta actual del archivo:\n{ruta}")
     else:
