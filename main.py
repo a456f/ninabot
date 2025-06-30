@@ -475,16 +475,13 @@ def enviar_datos_a_api(df):
         # 🚨 Eliminar filas con OrdenId no numérico
         df = df.dropna(subset=['OrdenId'])
 
-        # 🔄 Formatear columnas de fecha
-        df['FechaUltiEsta'] = pd.to_datetime(df['FechaUltiEsta'], errors='coerce') \
-                                .dt.strftime('%d/%m/%Y %H:%M:%S') \
-                                .fillna('00/00/0000 00:00:00')
-
-        for col in ['FechaIniVisi', 'FechaFinVisi', 'F.Soli']:
+        # 🔄 Formatear todas las columnas de fecha con la misma lógica
+        fechas_a_formatear = ['FechaUltiEsta', 'FechaIniVisi', 'FechaFinVisi', 'F.Soli']
+        for col in fechas_a_formatear:
             if col in df.columns:
-                df[col] = pd.to_datetime(df[col], errors='coerce') \
-                             .dt.strftime('%d/%m/%Y %H:%M:%S') \
-                             .fillna('00/00/0000 00:00:00')
+                df[col] = pd.to_datetime(df[col], errors='coerce')
+                df[col] = df[col].dt.strftime('%d/%m/%Y %H:%M:%S')
+                df[col] = df[col].fillna('00/00/0000 00:00:00')
 
         ordenes = []
 
@@ -509,20 +506,22 @@ def enviar_datos_a_api(df):
                 "ticket": str(row.get('CodiSegui', 'No asignado')),
                 "zona": str(row.get('Zona', 'No especificada')),
                 "tipo_traba": str(row.get('TipoTraba', 'No especificado')),
+
+                # ✅ Fechas ya tratadas uniformemente
                 "fecha_ulti_esta": row['FechaUltiEsta'],
+                "fecha_inicio_visita": row['FechaIniVisi'],
+                "fecha_fin_visita": row['FechaFinVisi'],
+                "fecha_solicitud": row['F.Soli'],
+
                 "codigo_cto": codigo_cto,
                 "datos_tecnicos": datos_tecnicos,
-
-                # 🔽 Nuevos campos agregados
                 "sector_operativo": str(row.get('Sector Operativo', 'Desconocido')),
-                "fecha_inicio_visita": str(row.get('FechaIniVisi', '00/00/0000 00:00:00')),
-                "fecha_fin_visita": str(row.get('FechaFinVisi', '00/00/0000 00:00:00')),
                 "producto": str(row.get('Producto', '')),
-                "tipo": str(row.get('Tipo', '')),
-                "fecha_solicitud": str(row.get('F.Soli', '00/00/0000 00:00:00'))
+                "tipo": str(row.get('Tipo', ''))
             }
             ordenes.append(orden)
 
+        # 📤 Enviar a la API
         payload = {"ordenes": ordenes}
         url_api = "https://cybernovasystems.com/prueba/sistema_tlc/modelos/telegran/api_guardar_ordenes.php"
         headers = {'Content-Type': 'application/json'}
