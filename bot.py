@@ -164,7 +164,7 @@ def bucle_automatico_2():
                     bot2.send_message(chat_id_global_2, f"⚠️ Error en automático:\n{e}")
             else:
                 print("[INFO] Fuera de horario (7:00 a.m. a 8:00 p.m.). Esperando...")
-        time.sleep(120)
+        time.sleep(300)
 
 @bot2.message_handler(commands=['estadoexcel'])
 def estado_excel_handler(msg):
