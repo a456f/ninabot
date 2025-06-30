@@ -13,7 +13,8 @@ from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 
 import estado_global  # Importa las variables globales
-desde main import detectar_fila_inicio, enviar_datos_a_api  # Funciones para procesar el Excel
+from main import detectar_fila_inicio, enviar_datos_a_api  # Funciones para procesar el Excel
+
 
 # Cargar estado desde archivo JSON
 estado_global.cargar_estado()
