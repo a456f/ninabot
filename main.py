@@ -549,7 +549,7 @@ def enviar_datos_a_api(df):
 
     except Exception as e:
         print(f"❌ Error inesperado: {e}")
-
+# hola
 # def actualizar_estado_excel(texto, color):
 #     estado_excel_label.config(text=f"{texto}", foreground=color)
 
