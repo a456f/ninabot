@@ -195,10 +195,19 @@ def apagar_handler(msg):
 @bot2.message_handler(commands=['estado'])
 def estado_handler(msg):
     print(f"[COMANDO] /estado ejecutado por {msg.chat.username or msg.chat.first_name}")
-    if modo_activo_2:
-        bot2.send_message(msg.chat.id, "✅ El bot está *ENCENDIDO*.", parse_mode="Markdown")
-    else:
-        bot2.send_message(msg.chat.id, "❌ El bot está *APAGADO*.", parse_mode="Markdown")
+    
+    estado = "✅ El bot está *ENCENDIDO*." if modo_activo_2 else "❌ El bot está *APAGADO*."
+    
+    comandos = """
+📦 *Comandos disponibles:*
+/start - Mostrar mensaje de bienvenida
+/exportar - Ejecutar exportación manual
+/encender - Activar modo automático
+/apagar - Desactivar modo automático
+/estado - Mostrar estado actual y ayuda
+"""
+    respuesta = f"{estado}\n\n{comandos}"
+    bot2.send_message(msg.chat.id, respuesta, parse_mode="Markdown")
 
 @bot2.message_handler(func=lambda m: True)
 def clave_handler(msg):
