@@ -19,13 +19,11 @@ import pygame  # O usa `playsound`, pero no ambos
 import platform
 import psutil  # Información de CPU y RAM
 import pytz
-from telebot.types import Message  # Asegura que esté importado
+from telebot.types import Message
 from dotenv import load_dotenv
 import textwrap
-from flask import Flask, request  # ✅ Sin duplicados
-import estado_global
-
-
+from flask import Flask, request
+import estado_global  # ✅ Importar variables globales
 
 # Cargar variables de entorno desde un archivo .env
 load_dotenv()
@@ -46,24 +44,26 @@ if not TOKEN:
 # Inicializar bot
 bot = telebot.TeleBot(TOKEN)
 
-# Estado global
+# Solo esta variable puede mantenerse local si es exclusiva del bot principal
 bot_activo = True
-usuarios_df = pd.DataFrame()
-estado_excel = "📊 Archivo Excel: No cargado ❌"
-ultima_ruta_archivo = ""
-
 
 # Carpeta donde se guardarán los archivos subidos
 CARPETA_ARCHIVOS = "archivos_subidos"
+os.makedirs(CARPETA_ARCHIVOS, exist_ok=True)
 
+# ✅ Ejemplo de uso de las variables globales:
+@bot.message_handler(commands=['estadoexcel'])
+def estado_excel_handler(msg):
+    bot.send_message(msg.chat.id, estado_global.estado_excel)
 
-def usar_datos_globales():
-    if estado_global.ultima_ruta_archivo and os.path.exists(estado_global.ultima_ruta_archivo):
-        df = estado_global.usuarios_df
-        print("Datos Excel disponibles en memoria, procesando...")
-        # Aquí llama tus funciones que usan df, o lo manipulas
+@bot.message_handler(commands=['rutaexcel'])
+def ruta_archivo_handler(msg):
+    ruta = estado_global.ultima_ruta_archivo
+    if ruta and os.path.exists(ruta):
+        bot.send_message(msg.chat.id, f"📁 Ruta actual del archivo:\n{ruta}")
     else:
-        print("No hay archivo Excel disponible aún.")
+        bot.send_message(msg.chat.id, "⚠️ No hay un archivo Excel cargado.")
+
 
 # Crear la carpeta si no existe
 os.makedirs(CARPETA_ARCHIVOS, exist_ok=True)
