@@ -503,6 +503,7 @@ def enviar_datos_a_api(df):
                 "direccion": str(row.get('Direccion', 'No especificada')),
                 "dni": str(row.get('Número Documento', 'No disponible')),
                 "telefono": str(row.get('TeleMovilNume', 'No disponible')),
+                "telefono_fijo": str(row.get('TeleFijoNume', 'No disponible')), 
                 "ticket": str(row.get('CodiSegui', 'No asignado')),
                 "zona": str(row.get('Zona', 'No especificada')),
                 "tipo_traba": str(row.get('TipoTraba', 'No especificado')),
