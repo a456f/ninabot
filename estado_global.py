@@ -1,9 +1,19 @@
 # estado_global.py
-import pandas as pd
+import json
+import os
 
-CARPETA_ARCHIVOS = "archivos_subidos"  # carpeta donde guardas archivos
+archivo_estado = "estado_excel.json"
 
-# Variables globales para compartir estado y datos
-usuarios_df = pd.DataFrame()
-estado_excel = "📊 Archivo Excel: No cargado ❌"
-ultima_ruta_archivo = ""
+def guardar_estado(estado_excel: str, ruta: str):
+    with open(archivo_estado, "w") as f:
+        json.dump({
+            "estado_excel": estado_excel,
+            "ruta": ruta
+        }, f, ensure_ascii=False)
+
+def cargar_estado():
+    if os.path.exists(archivo_estado):
+        with open(archivo_estado, "r") as f:
+            data = json.load(f)
+            return data.get("estado_excel", "📊 Archivo Excel: No cargado ❌"), data.get("ruta", "")
+    return "📊 Archivo Excel: No cargado ❌", ""
