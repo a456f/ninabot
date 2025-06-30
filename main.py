@@ -41,6 +41,8 @@ bot = telebot.TeleBot(TOKEN)
 
 bot_activo = True
 
+usuarios_df = pd.DataFrame()
+
 # Carpeta de archivos subidos
 CARPETA_ARCHIVOS = "archivos_subidos"
 os.makedirs(CARPETA_ARCHIVOS, exist_ok=True)
