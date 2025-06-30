@@ -3,6 +3,7 @@ import time
 import platform
 import threading
 import traceback
+from datetime import datetime  # <-- Import necesario
 import telebot
 import pandas as pd
 from selenium import webdriver
@@ -71,8 +72,6 @@ def obtener_ultimo_archivo_xlsx(folder, segundos_max=60):
     return sorted(archivos_recientes, key=os.path.getmtime, reverse=True)[0] if archivos_recientes else None
 
 def exportar_y_enviar_2(chat_id):
-    from datetime import datetime, timedelta
-
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
     wait = WebDriverWait(driver, 30)
     progreso_msg = bot2.send_message(chat_id, "📱 Iniciando proceso...")
@@ -92,31 +91,24 @@ def exportar_y_enviar_2(chat_id):
             actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 2, barra(i, 5))
             time.sleep(0.25)
 
-        # 🟦 Establecer fechas sin filtrar estado
         hoy = datetime.now().strftime("%d/%m/%Y")
-
         wait.until(EC.presence_of_element_located((By.ID, "txtDesdeFechaVisi74")))
         wait.until(EC.presence_of_element_located((By.ID, "txtHastaFechaVisi74")))
-
         driver.execute_script(f"document.getElementById('txtDesdeFechaVisi74').value = '{hoy}'")
         driver.execute_script(f"document.getElementById('txtHastaFechaVisi74').value = '{hoy}'")
 
-        # ✅ No se selecciona estado: se queda como "[Estado]"
-        # Solo se hace clic en filtrar
         filtrar_btn = wait.until(EC.presence_of_element_located((By.ID, "BtnFiltrar74")))
         driver.execute_script("arguments[0].click();", filtrar_btn)
         for i in range(1, 11):
             actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 3, barra(i))
             time.sleep(0.35)
 
-        # ✅ Exportar archivo
         exportar_btn = wait.until(EC.presence_of_element_located((By.XPATH, "//a[contains(., 'Exportar')]")))
         driver.execute_script("arguments[0].click();", exportar_btn)
         for i in range(1, 11):
             actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 4, barra(i))
             time.sleep(0.35)
 
-        # ✅ Esperar archivo
         driver.execute_script("arguments[0].click();", wait.until(EC.presence_of_element_located((By.ID, "spnNotiCampa"))))
         time.sleep(2)
         enlaces = driver.find_elements(By.XPATH, "//p[@class='noti-text']/a[contains(@href, '.xlsx')]")
@@ -179,7 +171,21 @@ def bucle_automatico_2():
                     bot2.send_message(chat_id_global_2, f"⚠️ Error en automático:\n{e}")
             else:
                 print("[INFO] Fuera de horario (7:00 a.m. a 8:00 p.m.). Esperando...")
-        time.sleep(20)
+        time.sleep(100)
+
+@bot2.message_handler(commands=['info'])
+def info_handler(msg):
+    if not modo_activo_2:
+        bot2.send_message(msg.chat.id, "❌ El modo automático está apagado.")
+        return
+
+    ahora = time.time()
+    segundos_restantes = 300 - int(ahora) % 300
+    minutos = segundos_restantes // 60
+    segundos = segundos_restantes % 60
+    texto = f"🕓 Faltan *{minutos}* minutos y *{segundos}* segundos para la siguiente ejecución automática."
+    bot2.send_message(msg.chat.id, texto, parse_mode="Markdown")
+
 
 @bot2.message_handler(commands=['estadoexcel'])
 def estado_excel_handler(msg):
