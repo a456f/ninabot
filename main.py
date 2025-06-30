@@ -28,33 +28,40 @@ import estado_global  # ✅ Importar variables globales
 # Cargar variables de entorno desde un archivo .env
 load_dotenv()
 
-# Definir la zona horaria de Lima (GMT-5)
+# Zona horaria
 tz_lima = pytz.timezone('America/Lima')
-
-# Asignar la hora de inicio con la zona horaria correcta
 inicio_bot = datetime.now(tz_lima)
 
-# Obtener el token del bot desde el archivo .env
+# Cargar token desde .env
 TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
-
-# Verificar si el token se cargó correctamente
 if not TOKEN:
     raise ValueError("Error: No se encontró el token de Telegram en las variables de entorno.")
 
-# Inicializar bot
 bot = telebot.TeleBot(TOKEN)
 
-# Solo esta variable puede mantenerse local si es exclusiva del bot principal
+# Variables locales
 bot_activo = True
+usuarios_df = estado_global.usuarios_df
+estado_excel = estado_global.estado_excel
+ultima_ruta_archivo = estado_global.ultima_ruta_archivo
 
-# Carpeta donde se guardarán los archivos subidos
+# Carpeta para archivos subidos
 CARPETA_ARCHIVOS = "archivos_subidos"
 os.makedirs(CARPETA_ARCHIVOS, exist_ok=True)
 
-# ✅ Ejemplo de uso de las variables globales:
+# ✅ Sincronización de estado_excel
+def set_estado_excel(nuevo_estado: str):
+    global estado_excel
+    estado_excel = nuevo_estado
+    estado_global.estado_excel = nuevo_estado
+
+def get_estado_excel():
+    return estado_global.estado_excel
+
+# ✅ Handlers
 @bot.message_handler(commands=['estadoexcel'])
 def estado_excel_handler(msg):
-    bot.send_message(msg.chat.id, estado_global.estado_excel)
+    bot.send_message(msg.chat.id, get_estado_excel())
 
 @bot.message_handler(commands=['rutaexcel'])
 def ruta_archivo_handler(msg):
