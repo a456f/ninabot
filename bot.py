@@ -152,14 +152,18 @@ def exportar_y_enviar_2(chat_id):
 def bucle_automatico_2():
     while True:
         if modo_activo_2 and chat_id_global_2:
-            try:
-                print("[INFO] Ejecutando automático...")
-                bot2.send_message(chat_id_global_2, "⏳ Iniciando proceso automático...")
-                exportar_y_enviar_2(chat_id_global_2)
-                bot2.send_message(chat_id_global_2, "✅ Proceso automático terminado.")
-            except Exception as e:
-                print(f"[ERROR] bucle_automatico_2: {e}")
-                bot2.send_message(chat_id_global_2, f"⚠️ Error en automático:\n{e}")
+            hora_actual = datetime.now().hour
+            if 7 <= hora_actual < 20:
+                try:
+                    print("[INFO] Ejecutando automático...")
+                    bot2.send_message(chat_id_global_2, "⏳ Iniciando proceso automático...")
+                    exportar_y_enviar_2(chat_id_global_2)
+                    bot2.send_message(chat_id_global_2, "✅ Proceso automático terminado.")
+                except Exception as e:
+                    print(f"[ERROR] bucle_automatico_2: {e}")
+                    bot2.send_message(chat_id_global_2, f"⚠️ Error en automático:\n{e}")
+            else:
+                print("[INFO] Fuera de horario (7:00 a.m. a 8:00 p.m.). Esperando...")
         time.sleep(120)
 
 @bot2.message_handler(commands=['estadoexcel'])
@@ -205,6 +209,20 @@ def apagar_handler(msg):
 @bot2.message_handler(commands=['estado'])
 def estado_handler(msg):
     estado = "✅ El bot está *ENCENDIDO*." if modo_activo_2 else "❌ El bot está *APAGADO*."
+
+    # Obtener nombre del usuario que activó el bot
+    if modo_activo_2 and chat_id_global_2:
+        try:
+            usuario = bot2.get_chat(chat_id_global_2)
+            nombre_usuario = f"{usuario.first_name or ''} {usuario.last_name or ''}".strip()
+            usuario_info = f"\n👤 *Activado por:* {nombre_usuario} (`{chat_id_global_2}`)"
+        except Exception:
+            usuario_info = f"\n👤 *Activado por:* `{chat_id_global_2}`"
+    else:
+        usuario_info = ""
+
+    horario = "\n🕒 *Horario de funcionamiento:* 7:00 a.m. a 8:00 p.m."
+
     comandos = """
 📦 *Comandos disponibles:*
 /exportar - Ejecutar exportación manual
@@ -213,7 +231,13 @@ def estado_handler(msg):
 /estado - Ver estado del bot
 /estadoexcel - Ver estado del archivo Excel
 """
-    bot2.send_message(msg.chat.id, f"{estado}\n\n{comandos}", parse_mode="Markdown")
+
+    bot2.send_message(
+        msg.chat.id,
+        f"{estado}{usuario_info}{horario}\n{comandos}",
+        parse_mode="Markdown"
+    )
+
 
 @bot2.message_handler(func=lambda m: True)
 def clave_handler(msg):
