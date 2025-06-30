@@ -12,17 +12,20 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 
-from main import detectar_fila_inicio, enviar_datos_a_api
+import estado_global  # Importa las variables globales
+from main import detectar_fila_inicio, enviar_datos_a_api  # Funciones para procesar el Excel
 
 TOKEN_2 = '7922512452:AAGhfzYMzhJPfV1TA1dBy2w6hICCIXHdNds'
 bot2 = telebot.TeleBot(TOKEN_2)
 
+# Configura carpeta de descargas según sistema
 if platform.system() == "Windows":
     DOWNLOAD_FOLDER = os.path.join(os.getcwd(), "descargas")
 else:
     DOWNLOAD_FOLDER = "/mnt/data"
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 
+# Configuraciones de ChromeDriver
 options = webdriver.ChromeOptions()
 prefs = {
     "download.default_directory": DOWNLOAD_FOLDER,
@@ -35,6 +38,7 @@ options.add_argument('--headless')
 options.add_argument('--no-sandbox')
 options.add_argument('--disable-dev-shm-usage')
 
+# Funciones auxiliares
 def barra(seg, total=10, largo=10):
     llenado = int((seg / total) * largo)
     porcentaje = int((seg / total) * 100)
@@ -63,6 +67,7 @@ def obtener_ultimo_archivo_xlsx(folder, segundos_max=60):
     archivos_recientes = [f for f in archivos if ahora - os.path.getmtime(f) < segundos_max]
     return sorted(archivos_recientes, key=os.path.getmtime, reverse=True)[0] if archivos_recientes else None
 
+# Variables de control de bot
 modo_activo_2 = False
 chat_id_global_2 = None
 usuarios_autorizados_2 = {}
@@ -79,19 +84,27 @@ def exportar_y_enviar_2(chat_id):
         wait.until(EC.presence_of_element_located((By.ID, "txtUsuario"))).send_keys("brubio")
         wait.until(EC.presence_of_element_located((By.ID, "txtPassword"))).send_keys("M123456789")
         driver.find_element(By.ID, "BtnLoginInicial").click()
-        for i in range(1, 6): actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 1, barra(i, 5)); time.sleep(0.25)
+        for i in range(1, 6):
+            actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 1, barra(i, 5))
+            time.sleep(0.25)
 
         wait.until(EC.presence_of_element_located((By.ID, "menuSistema")))
         driver.execute_script("AbrirPagi('Paginas/OperadoresBO/misOrdenes.aspx?to=1&nombre=Seguimiento+de+Ordenes&id=74&icono=&edit=S','74');")
-        for i in range(1, 6): actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 2, barra(i, 5)); time.sleep(0.25)
+        for i in range(1, 6):
+            actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 2, barra(i, 5))
+            time.sleep(0.25)
 
         filtrar_btn = wait.until(EC.presence_of_element_located((By.ID, "BtnFiltrar74")))
         driver.execute_script("arguments[0].click();", filtrar_btn)
-        for i in range(1, 11): actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 3, barra(i)); time.sleep(0.35)
+        for i in range(1, 11):
+            actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 3, barra(i))
+            time.sleep(0.35)
 
         exportar_btn = wait.until(EC.presence_of_element_located((By.XPATH, "//a[contains(., 'Exportar')]")))
         driver.execute_script("arguments[0].click();", exportar_btn)
-        for i in range(1, 11): actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 4, barra(i)); time.sleep(0.35)
+        for i in range(1, 11):
+            actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 4, barra(i))
+            time.sleep(0.35)
 
         driver.execute_script("arguments[0].click();", wait.until(EC.presence_of_element_located((By.ID, "spnNotiCampa"))))
         time.sleep(2)
@@ -122,11 +135,22 @@ def exportar_y_enviar_2(chat_id):
         df = pd.read_excel(local_path, skiprows=fila_inicio - 1, engine="openpyxl")
         df.columns = df.columns.str.strip()
 
+        # Actualiza estado global
+        estado_global.usuarios_df = df
+        estado_global.estado_excel = f"📁 Archivo descargado automáticamente: {filename_clean}"
+        estado_global.ultima_ruta_archivo = local_path
+
         if not df.empty:
             enviar_datos_a_api(df)
-            bot2.edit_message_text(f"✅ Archivo exportado y procesado correctamente.\n📎 Nombre: `{filename_clean}`", chat_id, progreso_msg.message_id, parse_mode="Markdown")
+            bot2.edit_message_text(
+                f"✅ Archivo exportado y procesado correctamente.\n📎 Nombre: `{filename_clean}`",
+                chat_id, progreso_msg.message_id, parse_mode="Markdown"
+            )
         else:
-            bot2.edit_message_text("⚠️ El archivo exportado está vacío o mal estructurado.", chat_id, progreso_msg.message_id)
+            bot2.edit_message_text(
+                "⚠️ El archivo exportado está vacío o mal estructurado.",
+                chat_id, progreso_msg.message_id
+            )
 
     except Exception as e:
         error = traceback.format_exc()
@@ -195,9 +219,9 @@ def apagar_handler(msg):
 @bot2.message_handler(commands=['estado'])
 def estado_handler(msg):
     print(f"[COMANDO] /estado ejecutado por {msg.chat.username or msg.chat.first_name}")
-    
+
     estado = "✅ El bot está *ENCENDIDO*." if modo_activo_2 else "❌ El bot está *APAGADO*."
-    
+
     comandos = """
 📦 *Comandos disponibles:*
 /start - Mostrar mensaje de bienvenida
@@ -205,9 +229,14 @@ def estado_handler(msg):
 /encender - Activar modo automático
 /apagar - Desactivar modo automático
 /estado - Mostrar estado actual y ayuda
+/estadoexcel - Ver estado del archivo Excel
 """
     respuesta = f"{estado}\n\n{comandos}"
     bot2.send_message(msg.chat.id, respuesta, parse_mode="Markdown")
+
+@bot2.message_handler(commands=['estadoexcel'])
+def estado_excel_handler(msg):
+    bot2.send_message(msg.chat.id, estado_global.estado_excel)
 
 @bot2.message_handler(func=lambda m: True)
 def clave_handler(msg):
@@ -233,6 +262,7 @@ def clave_handler(msg):
             bot2.send_message(msg.chat.id, "❌ Clave incorrecta.")
             print("[INFO] Clave incorrecta recibida.")
 
+# Inicia el hilo para el modo automático
 threading.Thread(target=bucle_automatico_2, daemon=True).start()
 print("🤖 Segundo bot ejecutándose...")
 bot2.polling()
