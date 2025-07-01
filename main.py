@@ -1254,13 +1254,10 @@ def mostrar_ayuda(message):
     bot.reply_to(message, ayuda)
 @bot.message_handler(commands=['info'])
 def mostrar_info(message):
-    global estado_excel  # Asegúrate de que la variable esté accesible
-    info = (
-
-        "Estado del Excel: " + estado_excel + "\n"  # Incluye el estado del Excel
-
-    )
+    estado, _ = cargar_estado()  # Lee el estado directamente desde el archivo JSON
+    info = f"📄 Estado del Excel:\n{estado}"
     bot.reply_to(message, info)
+
 
 
 def actualizar_estado(texto, color):
