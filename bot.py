@@ -80,7 +80,7 @@ def obtener_ultimo_archivo_xlsx(folder, segundos_max=60):
     archivos_recientes = [f for f in archivos if ahora - os.path.getmtime(f) < segundos_max]
     return sorted(archivos_recientes, key=os.path.getmtime, reverse=True)[0] if archivos_recientes else None
 
-ddef esperar_descarga_completa(filepath, timeout=30):
+def esperar_descarga_completa(filepath, timeout=30):
     for _ in range(timeout):
         if os.path.exists(filepath) and not filepath.endswith(".crdownload"):
             try:
