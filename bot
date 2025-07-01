@@ -245,26 +245,32 @@ def apagar_handler(msg):
 
 @bot2.message_handler(commands=['estado'])
 def estado_handler(msg):
-    estado = "✅ El bot está *ENCENDIDO*." if modo_activo_2 else "❌ El bot está *APAGADO*."
+    ahora = hora_actual_lima()
+    fecha_hora_lima = ahora.strftime("%d/%m/%Y %H:%M:%S")
 
-    # Obtener nombre del usuario que activó el bot
-    if modo_activo_2 and chat_id_global_2:
+    # Estado del bot
+    encendido = modo_activo_2 and chat_id_global_2
+    estado_texto = "✅ El bot está *ENCENDIDO*" if encendido else "❌ El bot está *APAGADO*"
+
+    # Horario fijo
+    horario_texto = "🕒 *Horario de funcionamiento:* 7:00 a.m. a 8:00 p.m."
+
+    # Fecha y hora actual
+    fecha_texto = f"📅 *Fecha y hora actual:* {fecha_hora_lima}"
+
+    # Nombre del usuario activador (si aplica)
+    if encendido:
         try:
             usuario = bot2.get_chat(chat_id_global_2)
-            nombre_usuario = f"{usuario.first_name or ''} {usuario.last_name or ''}".strip()
-            usuario_info = f"\n👤 *Activado por:* {nombre_usuario} ({chat_id_global_2})"
+            nombre = f"{usuario.first_name or ''} {usuario.last_name or ''}".strip().lower()
+            usuario_info = f"👤 *Activado por:* {nombre} ({chat_id_global_2})"
         except Exception:
-            usuario_info = f"\n👤 *Activado por:* {chat_id_global_2}"
+            usuario_info = f"👤 *Activado por:* ({chat_id_global_2})"
     else:
         usuario_info = ""
 
-    # Hora actual en Lima
-    fecha_hora_lima = hora_actual_lima().strftime("%d/%m/%Y %H:%M:%S")
-    hora_info = f"\n🕒 *Fecha y hora (Lima):* {fecha_hora_lima}"
-
-    horario = "\n🕐 *Horario de funcionamiento:* 7:00 a.m. a 9:00 p.m."
-
-    comandos = """
+    # Lista de comandos
+    comandos_texto = """
 📦 *Comandos disponibles:*
 /exportar - Ejecutar exportación manual
 /encender - Activar modo automático
@@ -273,11 +279,15 @@ def estado_handler(msg):
 /estadoexcel - Ver estado del archivo Excel
 """
 
-    bot2.send_message(
-        msg.chat.id,
-        f"{estado}{usuario_info}{hora_info}{horario}\n{comandos}",
-        parse_mode="Markdown"
-    )
+    # Armar mensaje final
+    mensaje = f"""{estado_texto}
+{usuario_info}
+{fecha_texto}
+{horario_texto}
+{comandos_texto}"""
+
+    bot2.send_message(msg.chat.id, mensaje.strip(), parse_mode="Markdown")
+
 
 
 @bot2.message_handler(func=lambda m: True)
