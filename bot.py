@@ -107,6 +107,7 @@ def exportar_y_enviar_2(chat_id):
         wait.until(EC.presence_of_element_located((By.ID, "txtUsuario"))).send_keys("brubio")
         wait.until(EC.presence_of_element_located((By.ID, "txtPassword"))).send_keys("M123456789")
         driver.find_element(By.ID, "BtnLoginInicial").click()
+
         for i in range(1, 6):
             actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 1, barra(i, 5))
             time.sleep(0.25)
@@ -114,6 +115,7 @@ def exportar_y_enviar_2(chat_id):
         # Abrir módulo
         wait.until(EC.presence_of_element_located((By.ID, "menuSistema")))
         driver.execute_script("AbrirPagi('Paginas/OperadoresBO/misOrdenes.aspx?to=1&nombre=Seguimiento+de+Ordenes&id=74&icono=&edit=S','74');")
+
         for i in range(1, 6):
             actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 2, barra(i, 5))
             time.sleep(0.25)
@@ -127,6 +129,7 @@ def exportar_y_enviar_2(chat_id):
 
         filtrar_btn = wait.until(EC.presence_of_element_located((By.ID, "BtnFiltrar74")))
         driver.execute_script("arguments[0].click();", filtrar_btn)
+
         for i in range(1, 11):
             actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 3, barra(i))
             time.sleep(0.35)
@@ -135,8 +138,9 @@ def exportar_y_enviar_2(chat_id):
         exportar_btn = wait.until(EC.presence_of_element_located((By.XPATH, "//a[contains(., 'Exportar')]")))
         driver.execute_script("arguments[0].click();", exportar_btn)
 
-        # Esperar 5 segundos sin hacer nada antes de ver notificaciones
+        # Esperar 5 segundos para que se genere el archivo
         time.sleep(5)
+
         for i in range(1, 11):
             actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 4, barra(i))
             time.sleep(0.35)
@@ -177,6 +181,7 @@ def exportar_y_enviar_2(chat_id):
         hora_fin = hora_actual_lima()
         duracion = hora_fin - hora_inicio
 
+        # Mensaje final al usuario
         bot2.edit_message_text(
             f"✅ Archivo exportado y procesado correctamente.\n"
             f"📎 Nombre: `{filename}`\n"
@@ -186,6 +191,28 @@ def exportar_y_enviar_2(chat_id):
             f"⏱️ Duración total: {str(duracion).split('.')[0]}",
             chat_id, progreso_msg.message_id, parse_mode="Markdown"
         )
+
+        # Enviar datos del proceso a la API
+        proxima_actualizacion = (hora_fin + timedelta(seconds=334)).strftime('%H:%M:%S')
+        payload = {
+            "nombre_archivo": filename,
+            "fecha_filtrada": hoy,
+            "hora_inicio": hora_inicio.strftime('%H:%M:%S'),
+            "hora_fin": hora_fin.strftime('%H:%M:%S'),
+            "duracion": str(duracion).split('.')[0],
+            "proxima_actualizacion": proxima_actualizacion
+        }
+
+        try:
+            response = requests.post(
+                "https://cybernovasystems.com/prueba/sistema_tlc/modelos/telegran/api_guardar_exportacion.php",
+                json=payload,
+                timeout=10
+            )
+            print("[INFO] Registro exportación enviado. Código:", response.status_code)
+            print("[INFO] Respuesta:", response.text)
+        except Exception as e:
+            print("[ERROR] Falló envío a API exportación:", e)
 
     except Exception as e:
         error = traceback.format_exc()
