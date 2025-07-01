@@ -23,7 +23,7 @@ from telebot.types import Message
 from dotenv import load_dotenv
 import textwrap
 from flask import Flask, request
-from estado_global import guardar_estado, cargar_estado  # ✅ nuevas funciones
+from estado_global import guardar_estado, cargar_estado  # ✅ nuevas funciones hola
 
 # Cargar variables de entorno
 load_dotenv()
