@@ -1256,10 +1256,21 @@ def mostrar_ayuda(message):
         "/ayuda - Muestra este mensaje de ayuda."
     )
     bot.reply_to(message, ayuda)
+    
 @bot.message_handler(commands=['info'])
 def mostrar_info(message):
-    estado, _ = cargar_estado()  # Lee el estado directamente desde el archivo JSON
-    info = f"📄 Estado del Excel:\n{estado}"
+    global usuarios_df  # Acceder al DataFrame global
+
+    estado, _ = cargar_estado()  # Lee el estado desde JSON
+
+    # Contar cuántas órdenes hay cargadas (filas del Excel)
+    total_ordenes = len(usuarios_df) if not usuarios_df.empty else 0
+
+    info = (
+        f"📄 Estado del Excel:\n{estado}\n"
+        f"📦 Órdenes cargadas: {total_ordenes}"
+    )
+
     bot.reply_to(message, info)
 
 
