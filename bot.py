@@ -5,6 +5,7 @@ import threading
 import traceback
 from datetime import datetime, timedelta
 import telebot
+import requests
 import pandas as pd
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
