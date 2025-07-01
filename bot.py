@@ -93,10 +93,13 @@ def esperar_descarga_completa(filepath, timeout=30):
     return False
 
 
+
 def exportar_y_enviar_2(chat_id):
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
     wait = WebDriverWait(driver, 30)
     progreso_msg = bot2.send_message(chat_id, "📱 Iniciando proceso...")
+
+    hora_inicio = hora_actual_lima()
 
     try:
         # Login
@@ -104,17 +107,13 @@ def exportar_y_enviar_2(chat_id):
         wait.until(EC.presence_of_element_located((By.ID, "txtUsuario"))).send_keys("brubio")
         wait.until(EC.presence_of_element_located((By.ID, "txtPassword"))).send_keys("M123456789")
         driver.find_element(By.ID, "BtnLoginInicial").click()
-
         for i in range(1, 6):
             actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 1, barra(i, 5))
             time.sleep(0.25)
 
         # Abrir módulo
         wait.until(EC.presence_of_element_located((By.ID, "menuSistema")))
-        driver.execute_script(
-            "AbrirPagi('Paginas/OperadoresBO/misOrdenes.aspx?to=1&nombre=Seguimiento+de+Ordenes&id=74&icono=&edit=S','74');"
-        )
-
+        driver.execute_script("AbrirPagi('Paginas/OperadoresBO/misOrdenes.aspx?to=1&nombre=Seguimiento+de+Ordenes&id=74&icono=&edit=S','74');")
         for i in range(1, 6):
             actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 2, barra(i, 5))
             time.sleep(0.25)
@@ -128,7 +127,6 @@ def exportar_y_enviar_2(chat_id):
 
         filtrar_btn = wait.until(EC.presence_of_element_located((By.ID, "BtnFiltrar74")))
         driver.execute_script("arguments[0].click();", filtrar_btn)
-
         for i in range(1, 11):
             actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 3, barra(i))
             time.sleep(0.35)
@@ -137,9 +135,8 @@ def exportar_y_enviar_2(chat_id):
         exportar_btn = wait.until(EC.presence_of_element_located((By.XPATH, "//a[contains(., 'Exportar')]")))
         driver.execute_script("arguments[0].click();", exportar_btn)
 
-        # Esperar 5 segundos sin hacer nada (para que se genere el archivo)
+        # Esperar 5 segundos sin hacer nada antes de ver notificaciones
         time.sleep(5)
-
         for i in range(1, 11):
             actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 4, barra(i))
             time.sleep(0.35)
@@ -159,12 +156,10 @@ def exportar_y_enviar_2(chat_id):
         filename = os.path.basename(url_archivo)
         ruta_descarga = os.path.join(DOWNLOAD_FOLDER, filename)
 
-        # Esperar que el archivo se descargue completamente
         if not esperar_descarga_completa(ruta_descarga):
             bot2.edit_message_text("❌ La descarga del archivo no se completó correctamente.", chat_id, progreso_msg.message_id)
             return
 
-        # Leer el archivo
         fila_inicio = detectar_fila_inicio(ruta_descarga)
         if fila_inicio is None:
             raise ValueError("No se encontró la fila de inicio.")
@@ -179,8 +174,16 @@ def exportar_y_enviar_2(chat_id):
         estado_global.guardar_estado(f"📁 Archivo descargado automáticamente: {filename}", ruta_descarga)
         enviar_datos_a_api(df)
 
+        hora_fin = hora_actual_lima()
+        duracion = hora_fin - hora_inicio
+
         bot2.edit_message_text(
-            f"✅ Archivo exportado y procesado correctamente.\n📎 Nombre: `{filename}`",
+            f"✅ Archivo exportado y procesado correctamente.\n"
+            f"📎 Nombre: `{filename}`\n"
+            f"📅 Fecha filtrada: {hoy}\n"
+            f"🕒 Inicio: {hora_inicio.strftime('%H:%M:%S')}\n"
+            f"🕓 Fin: {hora_fin.strftime('%H:%M:%S')}\n"
+            f"⏱️ Duración total: {str(duracion).split('.')[0]}",
             chat_id, progreso_msg.message_id, parse_mode="Markdown"
         )
 
