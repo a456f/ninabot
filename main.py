@@ -78,7 +78,7 @@ def cargar_datos_excel():
 
 def _cargar_excel_thread():
     """Carga el archivo Excel, detecta la fila de inicio y envía los datos a la API."""
-    global usuarios_df, estado_excel
+    global usuarios_df
     try:
         # Seleccionar archivo Excel
         file_path = filedialog.askopenfilename(
@@ -90,9 +90,9 @@ def _cargar_excel_thread():
             return
 
         # Guardar el archivo en la carpeta archivos_subidos
-        file_name = os.path.basename(file_path)  # Obtener solo el nombre del archivo
+        file_name = os.path.basename(file_path)
         new_file_path = os.path.join(CARPETA_ARCHIVOS, file_name)
-        shutil.copy(file_path, new_file_path)  # Copiar el archivo a la carpeta destino
+        shutil.copy(file_path, new_file_path)
 
         # Detectar la fila donde inicia la data
         fila_inicio = detectar_fila_inicio(new_file_path)
@@ -103,17 +103,19 @@ def _cargar_excel_thread():
 
         # Cargar datos desde la fila detectada
         df = pd.read_excel(new_file_path, skiprows=fila_inicio - 1)
-        df.columns = df.columns.str.strip()  # Eliminar espacios en los nombres de columnas
+        df.columns = df.columns.str.strip()
         usuarios_df = df
 
         # Mostrar una muestra de los datos en consola
         print("\n🔍 **Primeras 5 filas del DataFrame cargado:**")
         print(df.head())
 
-        estado_excel = f"📊 Archivo Excel Cargado: {file_name} ✔️"
+        # Guardar estado actualizado para el bot
+        guardar_estado(f"📊 Archivo Excel Cargado: {file_name} ✔️", new_file_path)
+
         messagebox.showinfo("Éxito", f"Archivo cargado y almacenado en {CARPETA_ARCHIVOS}: {file_name}")
 
-        # Llamar a la función para enviar datos automáticamente
+        # Enviar los datos a la API
         enviar_datos_a_api(df)
 
     except Exception as e:
