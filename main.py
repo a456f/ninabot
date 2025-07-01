@@ -519,13 +519,13 @@ def enviar_datos_a_api(df):
                 "sector_operativo": str(row.get('Sector Operativo', 'Desconocido')),
                 "producto": str(row.get('Producto', '')),
                 "tipo": str(row.get('Tipo', '')),
-                
-                # 🆕 Nuevos campos de motivos
-               "motivo_cancelacion": str(row.get('Motivo Cancelación', '')),
-               "motivo_anulacion": str(row.get('Motivo Anulación', '')),
-               "motivo_suspension": str(row.get('Motivo Suspensión', '')),
-               "motivo_regestion": str(row.get('Motivo Regestión', '')),
-               "motivo_finalizacion": str(row.get('Motivo Finalización', ''))
+
+                # 🆕 Nuevos campos
+                "motivo_cancelacion": str(row.get('Motivo Cancelación', '')),
+                "motivo_anulacion": str(row.get('Motivo Anulación', '')),
+                "motivo_suspension": str(row.get('Motivo Suspensión', '')),
+                "motivo_regestion": str(row.get('Motivo Regestión', '')),
+                "motivo_finalizacion": str(row.get('Motivo Finalización', ''))
             }
             ordenes.append(orden)
 
