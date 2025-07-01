@@ -80,26 +80,46 @@ def obtener_ultimo_archivo_xlsx(folder, segundos_max=60):
     archivos_recientes = [f for f in archivos if ahora - os.path.getmtime(f) < segundos_max]
     return sorted(archivos_recientes, key=os.path.getmtime, reverse=True)[0] if archivos_recientes else None
 
+ddef esperar_descarga_completa(filepath, timeout=30):
+    for _ in range(timeout):
+        if os.path.exists(filepath) and not filepath.endswith(".crdownload"):
+            try:
+                with open(filepath, "rb"):
+                    if os.path.getsize(filepath) > 10 * 1024:  # mínimo 10 KB
+                        return True
+            except Exception:
+                pass
+        time.sleep(1)
+    return False
+
+
 def exportar_y_enviar_2(chat_id):
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
     wait = WebDriverWait(driver, 30)
     progreso_msg = bot2.send_message(chat_id, "📱 Iniciando proceso...")
 
     try:
+        # Login
         driver.get("https://winbo-phx.azurewebsites.net/login.aspx")
         wait.until(EC.presence_of_element_located((By.ID, "txtUsuario"))).send_keys("brubio")
         wait.until(EC.presence_of_element_located((By.ID, "txtPassword"))).send_keys("M123456789")
         driver.find_element(By.ID, "BtnLoginInicial").click()
+
         for i in range(1, 6):
             actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 1, barra(i, 5))
             time.sleep(0.25)
 
+        # Abrir módulo
         wait.until(EC.presence_of_element_located((By.ID, "menuSistema")))
-        driver.execute_script("AbrirPagi('Paginas/OperadoresBO/misOrdenes.aspx?to=1&nombre=Seguimiento+de+Ordenes&id=74&icono=&edit=S','74');")
+        driver.execute_script(
+            "AbrirPagi('Paginas/OperadoresBO/misOrdenes.aspx?to=1&nombre=Seguimiento+de+Ordenes&id=74&icono=&edit=S','74');"
+        )
+
         for i in range(1, 6):
             actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 2, barra(i, 5))
             time.sleep(0.25)
 
+        # Filtrar por fecha actual
         hoy = obtener_fecha_filtrado()
         wait.until(EC.presence_of_element_located((By.ID, "txtDesdeFechaVisi74")))
         wait.until(EC.presence_of_element_located((By.ID, "txtHastaFechaVisi74")))
@@ -108,62 +128,67 @@ def exportar_y_enviar_2(chat_id):
 
         filtrar_btn = wait.until(EC.presence_of_element_located((By.ID, "BtnFiltrar74")))
         driver.execute_script("arguments[0].click();", filtrar_btn)
+
         for i in range(1, 11):
             actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 3, barra(i))
             time.sleep(0.35)
 
+        # Exportar
         exportar_btn = wait.until(EC.presence_of_element_located((By.XPATH, "//a[contains(., 'Exportar')]")))
+        time.sleep(5)  # Espera adicional antes de hacer clic
         driver.execute_script("arguments[0].click();", exportar_btn)
+
         for i in range(1, 11):
             actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 4, barra(i))
             time.sleep(0.35)
 
+        # Descargar el archivo
         driver.execute_script("arguments[0].click();", wait.until(EC.presence_of_element_located((By.ID, "spnNotiCampa"))))
         time.sleep(2)
+
         enlaces = driver.find_elements(By.XPATH, "//p[@class='noti-text']/a[contains(@href, '.xlsx')]")
         if not enlaces:
             bot2.edit_message_text("❌ No se encontró ningún archivo .xlsx.", chat_id, progreso_msg.message_id)
             return
-        driver.get(enlaces[0].get_attribute("href"))
 
-        filename_clean, local_path = None, None
-        for i in range(30):
-            archivo = obtener_ultimo_archivo_xlsx(DOWNLOAD_FOLDER, 90)
-            if archivo:
-                filename_clean = os.path.basename(archivo)
-                local_path = archivo
-                break
-            actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 5, barra(i, 30))
-            time.sleep(1)
+        url_archivo = enlaces[0].get_attribute("href")
+        driver.get(url_archivo)
 
-        if not filename_clean:
-            bot2.edit_message_text("❌ El archivo no se descargó correctamente.", chat_id, progreso_msg.message_id)
+        filename = os.path.basename(url_archivo)
+        ruta_descarga = os.path.join(DOWNLOAD_FOLDER, filename)
+
+        # Esperar descarga completa
+        if not esperar_descarga_completa(ruta_descarga):
+            bot2.edit_message_text("❌ La descarga del archivo no se completó correctamente.", chat_id, progreso_msg.message_id)
             return
 
-        fila_inicio = detectar_fila_inicio(local_path)
+        fila_inicio = detectar_fila_inicio(ruta_descarga)
         if fila_inicio is None:
             raise ValueError("No se encontró la fila de inicio.")
 
-        df = pd.read_excel(local_path, skiprows=fila_inicio - 1, engine="openpyxl")
+        df = pd.read_excel(ruta_descarga, skiprows=fila_inicio - 1, engine="openpyxl")
         df.columns = df.columns.str.strip()
 
-        estado_global.guardar_estado(f"📁 Archivo descargado automáticamente: {filename_clean}", local_path)
-
-        if not df.empty:
-            enviar_datos_a_api(df)
-            bot2.edit_message_text(
-                f"✅ Archivo exportado y procesado correctamente.\n📎 Nombre: `{filename_clean}`",
-                chat_id, progreso_msg.message_id, parse_mode="Markdown"
-            )
-        else:
+        if df.empty:
             bot2.edit_message_text("⚠️ El archivo exportado está vacío o mal estructurado.", chat_id, progreso_msg.message_id)
+            return
+
+        estado_global.guardar_estado(f"📁 Archivo descargado automáticamente: {filename}", ruta_descarga)
+        enviar_datos_a_api(df)
+
+        bot2.edit_message_text(
+            f"✅ Archivo exportado y procesado correctamente.\n📎 Nombre: `{filename}`",
+            chat_id, progreso_msg.message_id, parse_mode="Markdown"
+        )
 
     except Exception as e:
         error = traceback.format_exc()
-        print(f"[ERROR] exportar_y_enviar_2: \n{error}")
+        print(f"[ERROR] exportar_y_enviar_2:\n{error}")
         bot2.edit_message_text(f"⚠️ Error durante el proceso:\n{e}", chat_id, progreso_msg.message_id)
+
     finally:
         driver.quit()
+
 
 # Función para obtener la hora actual en Lima
 def hora_actual_lima():
