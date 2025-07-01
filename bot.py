@@ -135,48 +135,36 @@ def exportar_y_enviar_2(chat_id):
 
         # Exportar
         exportar_btn = wait.until(EC.presence_of_element_located((By.XPATH, "//a[contains(., 'Exportar')]")))
-        time.sleep(3)  # Espera antes del clic
         driver.execute_script("arguments[0].click();", exportar_btn)
+
+        # Esperar 5 segundos sin hacer nada (para que se genere el archivo)
+        time.sleep(5)
 
         for i in range(1, 11):
             actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 4, barra(i))
             time.sleep(0.35)
 
-        # Esperar antes de abrir notificaciones
-        time.sleep(5)
+        # Abrir notificaciones y descargar archivo
         driver.execute_script("arguments[0].click();", wait.until(EC.presence_of_element_located((By.ID, "spnNotiCampa"))))
         time.sleep(2)
 
-        # Obtener el enlace del archivo más reciente por fecha del texto
-        notis = driver.find_elements(By.XPATH, "//p[@class='noti-text']")
-        ult_link = None
-        ultima_fecha = datetime.min
-
-        for noti in notis:
-            try:
-                link = noti.find_element(By.TAG_NAME, "a")
-                texto_fecha = noti.text.strip().split("\n")[-1]  # Ej: "01/07/2025 13:24"
-                fecha = datetime.strptime(texto_fecha, "%d/%m/%Y %H:%M")
-                if fecha > ultima_fecha:
-                    ultima_fecha = fecha
-                    ult_link = link
-            except:
-                continue
-
-        if not ult_link:
-            bot2.edit_message_text("❌ No se encontró ningún archivo reciente en notificaciones.", chat_id, progreso_msg.message_id)
+        enlaces = driver.find_elements(By.XPATH, "//p[@class='noti-text']/a[contains(@href, '.xlsx')]")
+        if not enlaces:
+            bot2.edit_message_text("❌ No se encontró ningún archivo .xlsx.", chat_id, progreso_msg.message_id)
             return
 
-        url_archivo = ult_link.get_attribute("href")
+        url_archivo = enlaces[0].get_attribute("href")
         driver.get(url_archivo)
 
         filename = os.path.basename(url_archivo)
         ruta_descarga = os.path.join(DOWNLOAD_FOLDER, filename)
 
+        # Esperar que el archivo se descargue completamente
         if not esperar_descarga_completa(ruta_descarga):
             bot2.edit_message_text("❌ La descarga del archivo no se completó correctamente.", chat_id, progreso_msg.message_id)
             return
 
+        # Leer el archivo
         fila_inicio = detectar_fila_inicio(ruta_descarga)
         if fila_inicio is None:
             raise ValueError("No se encontró la fila de inicio.")
