@@ -966,23 +966,22 @@ def buscar_orden(message):
             bot.reply_to(message, "⛔ No tienes acceso en este momento. Contacta a soporte.")
             return
 
-        # Recargar Excel si usuarios_df está vacío
-        if usuarios_df.empty:
-            from estado_global import cargar_estado
-            _, ruta = cargar_estado()
-            if ruta and os.path.exists(ruta):
-                fila_inicio = detectar_fila_inicio(ruta)
-                if fila_inicio:
-                    df = pd.read_excel(ruta, skiprows=fila_inicio - 1)
-                    df.columns = df.columns.str.strip().str.replace('\n', '').str.replace('\r', '')
-                    usuarios_df = df
-                    print(f"✅ Excel recargado desde: {ruta}")
-                else:
-                    bot.reply_to(message, "⚠️ No se encontró la fila de inicio en el Excel.")
-                    return
+        # Siempre cargar Excel actualizado
+        from estado_global import cargar_estado
+        _, ruta = cargar_estado()
+        if ruta and os.path.exists(ruta):
+            fila_inicio = detectar_fila_inicio(ruta)
+            if fila_inicio:
+                df = pd.read_excel(ruta, skiprows=fila_inicio - 1)
+                df.columns = df.columns.str.strip().str.replace('\n', '').str.replace('\r', '')
+                usuarios_df = df
+                print(f"✅ Excel recargado desde: {ruta}")
             else:
-                bot.reply_to(message, "⚠️ No hay archivo Excel cargado. Usa /subir para cargar uno.")
+                bot.reply_to(message, "⚠️ No se encontró la fila de inicio en el Excel.")
                 return
+        else:
+            bot.reply_to(message, "⚠️ No hay archivo Excel cargado. Usa /subir para cargar uno.")
+            return
 
         # Buscar orden
         try:
@@ -998,9 +997,14 @@ def buscar_orden(message):
             codi_segui_clien = resultado['CodiSeguiClien'].values[0]
             markup = crear_teclado_categorias(ordenid)
 
+            # Mostrar nombre del archivo actual
+            nombre_excel = os.path.basename(ruta) if ruta else "desconocido"
+
             bot.send_message(
                 message.chat.id,
-                f"🔍 **CodiSeguiClien Seleccionado:** {codi_segui_clien}\n📋 **Selecciona una categoría:**",
+                f"🔍 **CodiSeguiClien Seleccionado:** {codi_segui_clien}\n"
+                f"📁 *Origen:* `{nombre_excel}`\n"
+                f"📋 **Selecciona una categoría:**",
                 reply_markup=markup,
                 parse_mode='Markdown'
             )
