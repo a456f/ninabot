@@ -248,45 +248,35 @@ def estado_handler(msg):
     ahora = hora_actual_lima()
     fecha_hora_lima = ahora.strftime("%d/%m/%Y %H:%M:%S")
 
-    # Estado del bot
-    encendido = modo_activo_2 and chat_id_global_2
-    estado_texto = "✅ El bot está *ENCENDIDO*" if encendido else "❌ El bot está *APAGADO*"
-
-    # Horario fijo
-    horario_texto = "🕒 *Horario de funcionamiento:* 7:00 a.m. a 8:00 p.m."
-
-    # Fecha y hora actual
-    fecha_texto = f"📅 *Fecha y hora actual:* {fecha_hora_lima}"
-
-    # Nombre del usuario activador (si aplica)
-    if encendido:
+    if modo_activo_2 and chat_id_global_2:
         try:
             usuario = bot2.get_chat(chat_id_global_2)
             nombre = f"{usuario.first_name or ''} {usuario.last_name or ''}".strip().lower()
-            usuario_info = f"👤 *Activado por:* {nombre} ({chat_id_global_2})"
         except Exception:
-            usuario_info = f"👤 *Activado por:* ({chat_id_global_2})"
+            nombre = "desconocido"
+        estado = "🟢 *Activo*"
+        activador = f"{nombre} ({chat_id_global_2})"
     else:
-        usuario_info = ""
+        estado = "🔴 *Inactivo*"
+        activador = "—"
 
-    # Lista de comandos
-    comandos_texto = """
+    mensaje = f"""📊 *Estado del bot*
+
+▫️ Estado: {estado}
+▫️ Activado por: {activador}
+▫️ Fecha actual: {fecha_hora_lima}
+▫️ Horario de trabajo: 7:00 a.m. a 8:00 p.m.
+
 📦 *Comandos disponibles:*
-/exportar - Ejecutar exportación manual
-/encender - Activar modo automático
-/apagar - Desactivar modo automático
-/estado - Ver estado del bot
-/estadoexcel - Ver estado del archivo Excel
+/exportar — Exportar manualmente
+/encender — Activar modo automático
+/apagar — Desactivar modo automático
+/estado — Ver estado actual
+/estadoexcel — Ver estado del archivo Excel
 """
 
-    # Armar mensaje final
-    mensaje = f"""{estado_texto}
-{usuario_info}
-{fecha_texto}
-{horario_texto}
-{comandos_texto}"""
+    bot2.send_message(msg.chat.id, mensaje, parse_mode="Markdown")
 
-    bot2.send_message(msg.chat.id, mensaje.strip(), parse_mode="Markdown")
 
 
 
