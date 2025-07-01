@@ -3,7 +3,7 @@ import time
 import platform
 import threading
 import traceback
-from datetime import datetime  # <-- Import necesario
+from datetime import datetime, timedelta
 import telebot
 import pandas as pd
 from selenium import webdriver
@@ -66,6 +66,14 @@ def actualizar_mensaje(bot, chat_id, msg_id, estado_actual, barra_progreso=""):
     except:
         pass
 
+
+def obtener_fecha_filtrado():
+    zona_lima = pytz.timezone("America/Lima")
+    ahora = datetime.now(zona_lima)
+    if ahora.hour < 7:
+        ahora -= timedelta(days=1)
+    return ahora.strftime("%d/%m/%Y")
+
 def obtener_ultimo_archivo_xlsx(folder, segundos_max=60):
     ahora = time.time()
     archivos = [os.path.join(folder, f) for f in os.listdir(folder) if f.endswith(".xlsx")]
@@ -92,7 +100,7 @@ def exportar_y_enviar_2(chat_id):
             actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 2, barra(i, 5))
             time.sleep(0.25)
 
-        hoy = datetime.now().strftime("%d/%m/%Y")
+        hoy = obtener_fecha_filtrado()
         wait.until(EC.presence_of_element_located((By.ID, "txtDesdeFechaVisi74")))
         wait.until(EC.presence_of_element_located((By.ID, "txtHastaFechaVisi74")))
         driver.execute_script(f"document.getElementById('txtDesdeFechaVisi74').value = '{hoy}'")
