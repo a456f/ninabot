@@ -336,6 +336,11 @@ def apagar_handler(msg):
     chat_id_global_2 = None
     usuarios_autorizados_2.pop(msg.chat.id, None)
     bot2.send_message(msg.chat.id, "🛑 Modo automático DESACTIVADO.")
+    
+@bot2.message_handler(commands=['hora'])
+def hora_handler(msg):
+    fecha_hora = obtener_fecha_hora_actual()
+    bot2.send_message(msg.chat.id, f"🕒 Fecha y hora actual (Lima):\n📅 {fecha_hora}")
 
 @bot2.message_handler(commands=['estado'])
 def estado_handler(msg):
