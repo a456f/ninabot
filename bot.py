@@ -13,6 +13,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
+from requests.exceptions import ReadTimeout
 import pytz
 
 import estado_global
@@ -364,4 +365,16 @@ def clave_handler(msg):
 
 threading.Thread(target=bucle_automatico_2, daemon=True).start()
 print("🤖 Segundo bot ejecutándose...")
-bot2.polling()
+
+def iniciar_bot2():
+    while True:
+        try:
+            bot2.polling(non_stop=True, timeout=60, long_polling_timeout=45)
+        except ReadTimeout:
+            print("⚠️ ReadTimeout detectado. Reintentando en 10 segundos...")
+            time.sleep(10)
+        except Exception as e:
+            print(f"⚠️ Error inesperado:\n{traceback.format_exc()}")
+            time.sleep(10)
+
+iniciar_bot2()
