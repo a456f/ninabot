@@ -76,7 +76,7 @@ def actualizar_mensaje(bot, chat_id, msg_id, estado_actual, barra_progreso=""):
 def obtener_fecha_filtrado():
     zona_lima = pytz.timezone("America/Lima")
     ahora = datetime.now(zona_lima)
-    if ahora.hour < 7:
+    if ahora.hour < 1:
         ahora -= timedelta(days=1)
     return ahora.strftime("%d/%m/%Y")
 
