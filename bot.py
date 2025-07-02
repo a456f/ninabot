@@ -16,6 +16,10 @@ from webdriver_manager.chrome import ChromeDriverManager
 from requests.exceptions import ReadTimeout
 import pytz
 
+# ⬇️ AÑADE ESTE BLOQUE DESPUÉS DE LOS IMPORTS
+os.environ['TZ'] = 'America/Lima'
+time.tzset()
+
 import estado_global
 from main import detectar_fila_inicio, enviar_datos_a_api
 
