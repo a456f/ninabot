@@ -339,8 +339,13 @@ def apagar_handler(msg):
     
 @bot2.message_handler(commands=['hora'])
 def hora_handler(msg):
-    fecha_hora = obtener_fecha_hora_actual()
-    bot2.send_message(msg.chat.id, f"🕒 Fecha y hora actual (Lima):\n📅 {fecha_hora}")
+    zona_lima = pytz.timezone("America/Lima")
+    ahora = datetime.now(zona_lima)
+    hora_actual = ahora.strftime("%H:%M:%S")
+    fecha_filtrada = obtener_fecha_filtrado()
+
+    bot2.send_message(msg.chat.id, f"📅 Fecha filtrada: {fecha_filtrada}\n🕒 Hora actual: {hora_actual}")
+
 
 @bot2.message_handler(commands=['estado'])
 def estado_handler(msg):
