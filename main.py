@@ -497,6 +497,12 @@ def enviar_datos_a_api(df):
             if telefono_fijo.endswith('.0'):
                 telefono_fijo = telefono_fijo[:-2]
 
+            # 🧭 Verificación y manejo de georeferencia
+            georeferencia = str(row.get('Georeferencia', 'No especificada'))
+            latitud, longitud = None, None
+            if georeferencia != 'No especificada' and ',' in georeferencia:
+                latitud, longitud = georeferencia.split(',')
+
             orden = {
                 "orden_id": int(row['OrdenId']),
                 "codigo_seguimiento": int(row['CodiSeguiClien']) if pd.notna(row['CodiSeguiClien']) else None,
@@ -519,7 +525,7 @@ def enviar_datos_a_api(df):
                 "sector_operativo": str(row.get('Sector Operativo', 'Desconocido')),
                 "producto": str(row.get('Producto', '')),
                 "tipo": str(row.get('Tipo', '')),
-                "Georeferencia": str(row.get('Georeferencia', 'No especificada')),
+                "Georeferencia": georeferencia,  # Asegúrate de que este campo esté correctamente representado
 
                 # 🆕 Nuevos campos
                 "motivo_cancelacion": str(row.get('Motivo Cancelación', '')),
@@ -528,6 +534,12 @@ def enviar_datos_a_api(df):
                 "motivo_regestion": str(row.get('Motivo Regestión', '')),
                 "motivo_finalizacion": str(row.get('Motivo Finalización', ''))
             }
+
+            # Añadimos la georeferencia correctamente
+            if latitud and longitud:
+                orden["latitud"] = latitud.strip()
+                orden["longitud"] = longitud.strip()
+
             ordenes.append(orden)
 
         # 🌐 Enviar datos a API
@@ -555,7 +567,6 @@ def enviar_datos_a_api(df):
         print(f"❌ Error en la respuesta JSON: {e}")
     except Exception as e:
         print(f"❌ Error inesperado: {e}")
-
 # hola
 # def actualizar_estado_excel(texto, color):
 #     estado_excel_label.config(text=f"{texto}", foreground=color)
