@@ -245,6 +245,7 @@ def bucle_automatico_2():
         try:
             ahora = hora_actual_lima()
             hora_actual = ahora.hour
+            minuto_actual = ahora.minute
             dia_actual = ahora.date()
 
             # Reiniciar banderas al cambiar de día
@@ -257,12 +258,12 @@ def bucle_automatico_2():
                 print(f"[DEBUG] Hora actual Lima: {ahora.strftime('%Y-%m-%d %H:%M:%S')}")
 
                 # Enviar mensaje de buenos días a las 7:00 a.m.
-                if hora_actual == 7 and not mensaje_buenos_dias_enviado:
+                if hora_actual == 7 and minuto_actual == 0 and not mensaje_buenos_dias_enviado:
                     bot2.send_message(chat_id_global_2, "☀️ ¡Buen día! Estoy iniciando mi horario de trabajo.")
                     mensaje_buenos_dias_enviado = True
 
                 # Enviar mensaje de despedida a las 9:00 p.m.
-                if hora_actual == 21 and not mensaje_descanso_enviado:
+                if hora_actual == 21 and minuto_actual == 0 and not mensaje_descanso_enviado:
                     bot2.send_message(chat_id_global_2, "🌙 Buen trabajo por hoy. Me retiro a descansar.")
                     mensaje_descanso_enviado = True
 
@@ -280,7 +281,13 @@ def bucle_automatico_2():
             if chat_id_global_2:
                 bot2.send_message(chat_id_global_2, f"⚠️ Error en automático:\n{e}")
 
-        time.sleep(300)  # Espera 5 minutos
+        # Esperar hasta el siguiente múltiplo de 5 minutos del reloj
+        ahora = datetime.now(pytz.timezone("America/Lima"))
+        segundos_pasados = (ahora.minute % 5) * 60 + ahora.second
+        espera = 300 - segundos_pasados
+        print(f"[DEBUG] Esperando {espera} segundos hasta el siguiente múltiplo de 5 minutos...")
+        time.sleep(espera)
+
 
 
 @bot2.message_handler(commands=['info'])
