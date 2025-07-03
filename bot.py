@@ -246,6 +246,7 @@ def bucle_automatico_2():
             ahora = hora_actual_lima()
             hora_actual = ahora.hour
             minuto_actual = ahora.minute
+            segundo_actual = ahora.second
             dia_actual = ahora.date()
 
             # Reiniciar banderas al cambiar de día
@@ -262,16 +263,19 @@ def bucle_automatico_2():
                     bot2.send_message(chat_id_global_2, "☀️ ¡Buen día! Estoy iniciando mi horario de trabajo.")
                     mensaje_buenos_dias_enviado = True
 
-                # Enviar mensaje de despedida a las 9:00 p.m.
-                if hora_actual == 21 and minuto_actual == 0 and not mensaje_descanso_enviado:
-                    bot2.send_message(chat_id_global_2, "🌙 Buen trabajo por hoy. Me retiro a descansar.")
-                    mensaje_descanso_enviado = True
-
-                if 7 <= hora_actual < 21:
+                # Ejecutar trabajo entre 7:00 y 21:00 INCLUSIVE
+                if 7 <= hora_actual <= 21:
                     print("[INFO] Ejecutando automático...")
                     bot2.send_message(chat_id_global_2, "⏳ Iniciando proceso automático...")
                     exportar_y_enviar_2(chat_id_global_2)
                     bot2.send_message(chat_id_global_2, "✅ Proceso automático terminado.")
+
+                    # Si justo es 21:00, esperar 30 segundos y despedirse
+                    if hora_actual == 21 and minuto_actual == 0 and not mensaje_descanso_enviado:
+                        print("[INFO] Esperando 30 segundos para enviar mensaje de despedida...")
+                        time.sleep(30)
+                        bot2.send_message(chat_id_global_2, "🌙 Buen trabajo por hoy. Me retiro a descansar.")
+                        mensaje_descanso_enviado = True
                 else:
                     print("[INFO] Fuera de horario (7:00 a.m. a 9:00 p.m.). Esperando...")
             else:
@@ -281,13 +285,12 @@ def bucle_automatico_2():
             if chat_id_global_2:
                 bot2.send_message(chat_id_global_2, f"⚠️ Error en automático:\n{e}")
 
-        # Esperar hasta el siguiente múltiplo de 5 minutos del reloj
+        # Esperar hasta el siguiente múltiplo de 5 minutos exacto
         ahora = datetime.now(pytz.timezone("America/Lima"))
         segundos_pasados = (ahora.minute % 5) * 60 + ahora.second
         espera = 300 - segundos_pasados
         print(f"[DEBUG] Esperando {espera} segundos hasta el siguiente múltiplo de 5 minutos...")
         time.sleep(espera)
-
 
 
 @bot2.message_handler(commands=['info'])
