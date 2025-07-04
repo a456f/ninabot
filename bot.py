@@ -263,8 +263,8 @@ def bucle_automatico_2():
                     bot2.send_message(chat_id_global_2, "☀️ ¡Buen día! Estoy iniciando mi horario de trabajo.")
                     mensaje_buenos_dias_enviado = True
 
-                # Ejecutar trabajo entre 7:00 y 21:00 INCLUSIVE
-                if 7 <= hora_actual <= 21:
+                # Ejecutar trabajo solo entre 7:00 y 20:59, y exactamente a las 21:00
+                if (7 <= hora_actual < 21) or (hora_actual == 21 and minuto_actual == 0):
                     print("[INFO] Ejecutando automático...")
                     bot2.send_message(chat_id_global_2, "⏳ Iniciando proceso automático...")
                     exportar_y_enviar_2(chat_id_global_2)
@@ -291,6 +291,7 @@ def bucle_automatico_2():
         espera = 300 - segundos_pasados
         print(f"[DEBUG] Esperando {espera} segundos hasta el siguiente múltiplo de 5 minutos...")
         time.sleep(espera)
+
 
 
 @bot2.message_handler(commands=['info'])
