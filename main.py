@@ -461,7 +461,6 @@ def comprimir_excel_por_fecha(fecha_str):
     return zip_dest
 
 
-
 def enviar_datos_a_api(df):
     """Convierte los datos del DataFrame en JSON y los envía a la API automáticamente."""
     try:
@@ -487,11 +486,26 @@ def enviar_datos_a_api(df):
         for _, row in df.iterrows():
             # 🧠 Datos técnicos y CTO
             datos_tecnicos_raw = str(row.get('Datos Técnicos', 'Desconocida'))
-            match_cto = re.search(r'(W-[^;]+)', datos_tecnicos_raw, re.IGNORECASE)
+
+            # 👉 Extraer CTO (ej: W-12345)
+            match_cto = re.search(r'(W-\S+)', datos_tecnicos_raw, re.IGNORECASE)
             codigo_cto = match_cto.group(1) if match_cto else None
+
+            # 👉 Extraer teléfonos desde Datos Técnicos
+            telefono_referencia = None
+            telefono_ultimo_contacto = None
+
+            match_ref = re.search(r'MOVIL REFERENCIA/Alfanumérico/(\d+)', datos_tecnicos_raw)
+            if match_ref:
+                telefono_referencia = match_ref.group(1)
+
+            match_ultimo = re.search(r'MOVIL ULTIMO CONTACTO/Alfanumérico/(\d+)', datos_tecnicos_raw)
+            if match_ultimo:
+                telefono_ultimo_contacto = match_ultimo.group(1)
+
             datos_tecnicos = datos_tecnicos_raw.strip()
 
-            # ☎️ Manejo de teléfonos
+            # ☎️ Manejo de teléfonos principales
             telefono_movil = str(row.get('TeleMovilNume', 'No disponible'))
             telefono_fijo = str(row.get('TeleFijoNume', 'No disponible'))
             if telefono_fijo.endswith('.0'):
@@ -525,17 +539,21 @@ def enviar_datos_a_api(df):
                 "sector_operativo": str(row.get('Sector Operativo', 'Desconocido')),
                 "producto": str(row.get('Producto', '')),
                 "tipo": str(row.get('Tipo', '')),
-                "Georeferencia": georeferencia,  # Asegúrate de que este campo esté correctamente representado
+                "Georeferencia": georeferencia,
 
                 # 🆕 Nuevos campos
                 "motivo_cancelacion": str(row.get('Motivo Cancelación', '')),
                 "motivo_anulacion": str(row.get('Motivo Anulación', '')),
                 "motivo_suspension": str(row.get('Motivo Suspensión', '')),
                 "motivo_regestion": str(row.get('Motivo Regestión', '')),
-                "motivo_finalizacion": str(row.get('Motivo Finalización', ''))
+                "motivo_finalizacion": str(row.get('Motivo Finalización', '')),
+
+                # 📞 Nuevos campos extraídos desde 'Datos Técnicos'
+                "telefono_referencia": telefono_referencia,
+                "telefono_ultimo_contacto": telefono_ultimo_contacto
             }
 
-            # Añadimos la georeferencia correctamente
+            # Añadir latitud y longitud si están disponibles
             if latitud and longitud:
                 orden["latitud"] = latitud.strip()
                 orden["longitud"] = longitud.strip()
@@ -567,6 +585,7 @@ def enviar_datos_a_api(df):
         print(f"❌ Error en la respuesta JSON: {e}")
     except Exception as e:
         print(f"❌ Error inesperado: {e}")
+
 # hola
 # def actualizar_estado_excel(texto, color):
 #     estado_excel_label.config(text=f"{texto}", foreground=color)
