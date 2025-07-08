@@ -67,9 +67,9 @@ def ruta_archivo_handler(msg):
 
 # Crear la carpeta si no existe
 os.makedirs(CARPETA_ARCHIVOS, exist_ok=True)
-API_VALIDAR_USUARIO = "https://tliperu.com/prueba/telegran/telegran/api_validar_usuario.php"
+API_VALIDAR_USUARIO = "https://tliperu.com/prueba/telegran/api_validar_usuario.php"
 
-API_REGISTRAR_ASISTENCIA = "https://tliperu.com/prueba/telegran/telegran/api_registrar_asistencia.php"
+API_REGISTRAR_ASISTENCIA = "https://tliperu.com/prueba/telegran/api_registrar_asistencia.php"
 # Eliminar el webhook si está activo
 bot.remove_webhook()
 def cargar_datos_excel():
@@ -562,7 +562,7 @@ def enviar_datos_a_api(df):
 
         # 🌐 Enviar datos a API
         payload = {"ordenes": ordenes}
-        url_api = "https://tliperu.com/prueba/telegran/telegran/api_guardar_ordenes.php"
+        url_api = "https://tliperu.com/prueba/telegran/api_guardar_ordenes.php"
         headers = {'Content-Type': 'application/json'}
 
         print("\n📤 Datos enviados:")
