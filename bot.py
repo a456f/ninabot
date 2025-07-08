@@ -211,7 +211,7 @@ def exportar_y_enviar_2(chat_id):
 
         try:
             response = requests.post(
-                "https://cybernovasystems.com/prueba/sistema_tlc/modelos/telegran/api_guardar_exportacion.php",
+                "https://tliperu.com/prueba/telegran/api_guardar_exportacion.php",
                 json=payload,
                 timeout=10
             )
