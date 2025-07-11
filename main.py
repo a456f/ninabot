@@ -547,6 +547,7 @@ def enviar_datos_a_api(df):
                 "motivo_suspension": str(row.get('Motivo Suspensión', '')),
                 "motivo_regestion": str(row.get('Motivo Regestión', '')),
                 "motivo_finalizacion": str(row.get('Motivo Finalización', '')),
+                "motivo_trabajo": str(row.get('Motivo Trabajo', 'No especificada')),
 
                 # 📞 Nuevos campos extraídos desde 'Datos Técnicos'
                 "telefono_referencia": telefono_referencia,
