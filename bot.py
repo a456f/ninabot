@@ -235,6 +235,15 @@ def hora_actual_lima():
     zona_lima = pytz.timezone("America/Lima")
     return datetime.now(zona_lima)
 
+import threading
+from datetime import datetime
+import pytz
+import time
+import traceback
+import requests
+
+bloqueo_auto = threading.Lock()
+
 def bucle_automatico_2():
     global mensaje_buenos_dias_enviado, mensaje_descanso_enviado
     mensaje_buenos_dias_enviado = False
@@ -249,49 +258,73 @@ def bucle_automatico_2():
             segundo_actual = ahora.second
             dia_actual = ahora.date()
 
-            # Reiniciar banderas al cambiar de día
+            # Reiniciar banderas si cambió de día
             if dia_actual != ultimo_dia:
                 mensaje_buenos_dias_enviado = False
                 mensaje_descanso_enviado = False
                 ultimo_dia = dia_actual
 
-            if modo_activo_2 and chat_id_global_2:
-                print(f"[DEBUG] Hora actual Lima: {ahora.strftime('%Y-%m-%d %H:%M:%S')}")
+            if not bloqueo_auto.acquire(blocking=False):
+                print("⚠️ Ya hay un proceso automático en ejecución. Se omite esta iteración.")
+            elif modo_activo_2 and chat_id_global_2:
+                print(f"[INFO] Hora actual: {ahora.strftime('%Y-%m-%d %H:%M:%S')}")
 
-                # Enviar mensaje de buenos días a las 7:00 a.m.
+                # Buenos días
                 if hora_actual == 7 and minuto_actual == 0 and not mensaje_buenos_dias_enviado:
-                    bot2.send_message(chat_id_global_2, "☀️ ¡Buen día! Estoy iniciando mi horario de trabajo.")
-                    mensaje_buenos_dias_enviado = True
+                    try:
+                        bot2.send_message(chat_id_global_2, "☀️ ¡Buen día! Estoy iniciando mi horario de trabajo.")
+                        mensaje_buenos_dias_enviado = True
+                    except Exception as e:
+                        print(f"Error al enviar saludo matutino: {e}")
 
-                # Ejecutar trabajo solo entre 7:00 y 20:59, y exactamente a las 21:00
+                # Proceso automático
                 if (7 <= hora_actual < 21) or (hora_actual == 21 and minuto_actual == 0):
-                    print("[INFO] Ejecutando automático...")
-                    bot2.send_message(chat_id_global_2, "⏳ Iniciando proceso automático...")
-                    exportar_y_enviar_2(chat_id_global_2)
-                    bot2.send_message(chat_id_global_2, "✅ Proceso automático terminado.")
+                    try:
+                        print("[INFO] Ejecutando proceso automático...")
+                        bot2.send_message(chat_id_global_2, "⏳ Iniciando proceso automático...")
 
-                    # Si justo es 21:00, esperar 30 segundos y despedirse
+                        exportar_y_enviar_2(chat_id_global_2)
+
+                        bot2.send_message(chat_id_global_2, "✅ Proceso automático terminado.")
+                    except requests.exceptions.ReadTimeout:
+                        print("⏱️ Timeout al contactar con la API de Telegram.")
+                    except Exception as e:
+                        print(f"❌ Error en exportación: {e}")
+                        try:
+                            bot2.send_message(chat_id_global_2, f"⚠️ Error en automático:\n{e}")
+                        except Exception as envio_error:
+                            print(f"No se pudo notificar el error: {envio_error}")
+
+                    # Mensaje de despedida
                     if hora_actual == 21 and minuto_actual == 0 and not mensaje_descanso_enviado:
-                        print("[INFO] Esperando 30 segundos para enviar mensaje de despedida...")
+                        print("[INFO] Esperando 30s para enviar mensaje de descanso...")
                         time.sleep(30)
-                        bot2.send_message(chat_id_global_2, "🌙 Buen trabajo por hoy. Me retiro a descansar.")
-                        mensaje_descanso_enviado = True
+                        try:
+                            bot2.send_message(chat_id_global_2, "🌙 Buen trabajo por hoy. Me retiro a descansar.")
+                            mensaje_descanso_enviado = True
+                        except Exception as e:
+                            print(f"Error al enviar despedida: {e}")
                 else:
-                    print("[INFO] Fuera de horario (7:00 a.m. a 9:00 p.m.). Esperando...")
+                    print("[INFO] Fuera de horario (7:00 a.m. – 9:00 p.m.). Esperando...")
             else:
-                print("[INFO] Modo automático desactivado o chat_id no definido.")
+                print("[INFO] Modo automático inactivo o sin chat definido.")
         except Exception as e:
             print(f"[ERROR] bucle_automatico_2: {e}")
-            if chat_id_global_2:
-                bot2.send_message(chat_id_global_2, f"⚠️ Error en automático:\n{e}")
+            try:
+                if chat_id_global_2:
+                    bot2.send_message(chat_id_global_2, f"⚠️ Error en automático:\n{e}")
+            except Exception as envio_error:
+                print(f"No se pudo enviar el error por Telegram: {envio_error}")
+        finally:
+            if bloqueo_auto.locked():
+                bloqueo_auto.release()
 
-        # Esperar hasta el siguiente múltiplo de 5 minutos exacto
+        # ⏳ Esperar hasta el próximo múltiplo de 5 minutos
         ahora = datetime.now(pytz.timezone("America/Lima"))
         segundos_pasados = (ahora.minute % 5) * 60 + ahora.second
         espera = 300 - segundos_pasados
-        print(f"[DEBUG] Esperando {espera} segundos hasta el siguiente múltiplo de 5 minutos...")
+        print(f"[DEBUG] Esperando {espera} segundos para la próxima ejecución.")
         time.sleep(espera)
-
 
 
 @bot2.message_handler(commands=['info'])
