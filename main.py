@@ -187,82 +187,58 @@ def recibir_imagen(message: Message):
     mensaje_carga = bot.reply_to(message, "⏳ Procesando tu solicitud...")
     
     datos_ubicacion = usuarios_esperando_imagen[user_id]
+
+    # Obtener URL directa de la foto desde Telegram (sin descargarla al VPS)
     file_id = message.photo[-1].file_id
     file_info = bot.get_file(file_id)
     file_path = file_info.file_path
     image_url = f"https://api.telegram.org/file/bot{TOKEN}/{file_path}"
-    image_path = f"imagenes/{user_id}.jpg"
-    
-    print(f"📸 Recibida imagen de {user_id}")
-    print(f"🖼️ File ID: {file_id}")
-    print(f"📂 File Path: {file_path}")
-    print(f"🌍 URL de la imagen: {image_url}")
-    
-    # Crear la carpeta si no existe
-    if not os.path.exists("imagenes"):
-        os.makedirs("imagenes")
-    
-    # Descargar la imagen
-    response = requests.get(image_url, stream=True)
-    if response.status_code == 200:
-        with open(image_path, "wb") as file:
-            for chunk in response.iter_content(1024):
-                file.write(chunk)
-        print(f"✅ Imagen guardada en: {image_path}")
-    else:
-        print("❌ Error al descargar la imagen")
-        bot.edit_message_text("⚠️ Error al descargar la imagen.", message.chat.id, mensaje_carga.message_id)
-        return
+
+    print(f"📸 Imagen recibida de {user_id}")
+    print(f"🌍 URL directa: {image_url}")
     
     # Datos a enviar a la API
     datos = {
         "user_id": str(user_id),
         "latitud": str(datos_ubicacion["latitud"]),
-        "longitud": str(datos_ubicacion["longitud"])
-     
+        "longitud": str(datos_ubicacion["longitud"]),
+        "image_url": image_url   # 👉 Solo pasamos la URL
     }
-    
-    # Enviar imagen y datos a la API
-    with open(image_path, "rb") as image_file:
-        files = {"imagen": image_file}
-        try:
-            response = requests.post(API_REGISTRAR_ASISTENCIA, data=datos, files=files, timeout=10)
-            print(f"🔄 Código de respuesta API: {response.status_code}")
-            print(f"📩 Respuesta API: {response.text}")
+
+    try:
+        response = requests.post(API_REGISTRAR_ASISTENCIA, data=datos, timeout=10)
+        print(f"🔄 Código de respuesta API: {response.status_code}")
+        print(f"📩 Respuesta API: {response.text}")
+        
+        if response.status_code == 200:
+            try:
+                data = response.json()
+                print(f"📊 Datos de la API: {data}")
+            except ValueError:
+                bot.edit_message_text("⚠️ Respuesta inválida del servidor. Inténtalo más tarde.",
+                                      message.chat.id, mensaje_carga.message_id)
+                return
             
-            if response.status_code == 200:
-                try:
-                    data = response.json()
-                    print(f"📊 Datos de la API: {data}")
-                except ValueError:
-                    print(f"⚠️ Error al interpretar JSON: {response.text}")
-                    bot.edit_message_text("⚠️ Respuesta inválida del servidor. Inténtalo más tarde.", message.chat.id, mensaje_carga.message_id)
-                    return
-                
-                if data.get("asistencia_registrada", False):
-                    mensaje_confirmacion = (
-                        f"✅ *👷‍♂️ {datos_ubicacion['nombre_tecnico']} (ID: {user_id}) ha enviado su asistencia correctamente.*\n\n"
-                        "📌 La gestora revisará tu solicitud y te dará acceso al bot. Por favor, espera su aprobación. ⏳"
-                    )
-                    bot.edit_message_text(mensaje_confirmacion, message.chat.id, mensaje_carga.message_id)
-                else:
-                    mensaje_api = data.get("mensaje", "⛔ No puedes marcar asistencia desde esta ubicación.")
-                    bot.edit_message_text(f"⛔ {mensaje_api}", message.chat.id, mensaje_carga.message_id)
+            if data.get("asistencia_registrada", False):
+                mensaje_confirmacion = (
+                    f"✅ *👷‍♂️ {datos_ubicacion['nombre_tecnico']} (ID: {user_id}) ha enviado su asistencia correctamente.*\n\n"
+                    "📌 La gestora revisará tu solicitud y te dará acceso al bot. Por favor, espera su aprobación. ⏳"
+                )
+                bot.edit_message_text(mensaje_confirmacion, message.chat.id, mensaje_carga.message_id, parse_mode="Markdown")
             else:
-                bot.edit_message_text("⚠️ Error al registrar asistencia. Inténtalo más tarde.", message.chat.id, mensaje_carga.message_id)
-        except requests.exceptions.RequestException as e:
-            print(f"❌ Error al conectar con la API: {e}")
-            bot.edit_message_text("⚠️ Error al registrar asistencia. Inténtalo más tarde.", message.chat.id, mensaje_carga.message_id)
-    
-    # Eliminar la imagen después de enviarla
-    if os.path.exists(image_path):
-        try:
-            os.remove(image_path)
-            print(f"🗑️ Imagen eliminada: {image_path}")
-        except Exception as e:
-            print(f"⚠️ No se pudo eliminar la imagen: {e}")
-    
+                mensaje_api = data.get("mensaje", "⛔ No puedes marcar asistencia desde esta ubicación.")
+                bot.edit_message_text(f"⛔ {mensaje_api}", message.chat.id, mensaje_carga.message_id)
+        else:
+            bot.edit_message_text("⚠️ Error al registrar asistencia. Inténtalo más tarde.",
+                                  message.chat.id, mensaje_carga.message_id)
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Error al conectar con la API: {e}")
+        bot.edit_message_text("⚠️ Error al registrar asistencia. Inténtalo más tarde.",
+                              message.chat.id, mensaje_carga.message_id)
+
+    # Limpiar estado
     usuarios_esperando_imagen.pop(user_id, None)
+
     
 PASSWORD_CORRECTA = "1"
 usuarios_autorizados = {}
