@@ -516,6 +516,7 @@ def enviar_datos_a_api(df):
                 "producto": str(row.get('Producto', '')),
                 "tipo": str(row.get('Tipo', '')),
                 "Georeferencia": georeferencia,
+                "IdenServi": str(row.get('IdenServi', 'Desconocido')),
 
                 # 🆕 Nuevos campos
                 "motivo_cancelacion": str(row.get('Motivo Cancelación', '')),
