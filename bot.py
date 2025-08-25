@@ -101,82 +101,118 @@ def esperar_descarga_completa(filepath, timeout=30):
 
 
 def exportar_y_enviar_2(chat_id):
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-    wait = WebDriverWait(driver, 30)
-    progreso_msg = bot2.send_message(chat_id, "📱 Iniciando proceso...")
+    from selenium.common.exceptions import TimeoutException, WebDriverException
+    import traceback
 
+    # Configurar Chrome con opciones robustas para VPS
+    chrome_options = webdriver.ChromeOptions()
+    chrome_options.add_argument('--headless=new')  # Headless moderno
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--disable-dev-shm-usage')
+    chrome_options.add_argument('--disable-gpu')
+    chrome_options.add_argument('--disable-software-rasterizer')
+    chrome_options.add_argument('--single-process')
+    chrome_options.add_argument('--window-size=1920,1080')
+    chrome_options.add_experimental_option("prefs", {
+        "download.default_directory": DOWNLOAD_FOLDER,
+        "download.prompt_for_download": False,
+        "profile.default_content_settings.popups": 0,
+        "directory_upgrade": True
+    })
+
+    progreso_msg = bot2.send_message(chat_id, "📱 Iniciando proceso...")
     hora_inicio = hora_actual_lima()
 
+    driver = None
     try:
-        # Login
+        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+        wait = WebDriverWait(driver, 30)
+
+        # ----- LOGIN -----
         driver.get("https://winbo-phx.azurewebsites.net/login.aspx")
-        wait.until(EC.presence_of_element_located((By.ID, "txtUsuario"))).send_keys("brubio")
-        wait.until(EC.presence_of_element_located((By.ID, "txtPassword"))).send_keys("M123456789")
-        driver.find_element(By.ID, "BtnLoginInicial").click()
+        try:
+            wait.until(EC.presence_of_element_located((By.ID, "txtUsuario"))).send_keys("brubio")
+            wait.until(EC.presence_of_element_located((By.ID, "txtPassword"))).send_keys("M123456789")
+            driver.find_element(By.ID, "BtnLoginInicial").click()
+        except Exception as e:
+            bot2.edit_message_text(f"❌ Error al iniciar sesión: {e}", chat_id, progreso_msg.message_id)
+            return
 
         for i in range(1, 6):
             actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 1, barra(i, 5))
             time.sleep(0.25)
 
-        # Abrir módulo
-        wait.until(EC.presence_of_element_located((By.ID, "menuSistema")))
-        driver.execute_script("AbrirPagi('Paginas/OperadoresBO/misOrdenes.aspx?to=1&nombre=Seguimiento+de+Ordenes&id=74&icono=&edit=S','74');")
+        # ----- ABRIR MÓDULO -----
+        try:
+            wait.until(EC.presence_of_element_located((By.ID, "menuSistema")))
+            driver.execute_script(
+                "AbrirPagi('Paginas/OperadoresBO/misOrdenes.aspx?to=1&nombre=Seguimiento+de+Ordenes&id=74&icono=&edit=S','74');"
+            )
+        except Exception as e:
+            bot2.edit_message_text(f"❌ Error al abrir módulo: {e}", chat_id, progreso_msg.message_id)
+            return
 
         for i in range(1, 6):
             actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 2, barra(i, 5))
             time.sleep(0.25)
 
-        # Filtrar por fecha actual
+        # ----- FILTRAR POR FECHA -----
         hoy = obtener_fecha_filtrado()
-        wait.until(EC.presence_of_element_located((By.ID, "txtDesdeFechaVisi74")))
-        wait.until(EC.presence_of_element_located((By.ID, "txtHastaFechaVisi74")))
-        driver.execute_script(f"document.getElementById('txtDesdeFechaVisi74').value = '{hoy}'")
-        driver.execute_script(f"document.getElementById('txtHastaFechaVisi74').value = '{hoy}'")
-
-        filtrar_btn = wait.until(EC.presence_of_element_located((By.ID, "BtnFiltrar74")))
-        driver.execute_script("arguments[0].click();", filtrar_btn)
+        try:
+            wait.until(EC.presence_of_element_located((By.ID, "txtDesdeFechaVisi74")))
+            wait.until(EC.presence_of_element_located((By.ID, "txtHastaFechaVisi74")))
+            driver.execute_script(f"document.getElementById('txtDesdeFechaVisi74').value = '{hoy}'")
+            driver.execute_script(f"document.getElementById('txtHastaFechaVisi74').value = '{hoy}'")
+            filtrar_btn = wait.until(EC.presence_of_element_located((By.ID, "BtnFiltrar74")))
+            driver.execute_script("arguments[0].click();", filtrar_btn)
+        except Exception as e:
+            bot2.edit_message_text(f"❌ Error al filtrar fechas: {e}", chat_id, progreso_msg.message_id)
+            return
 
         for i in range(1, 11):
             actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 3, barra(i))
             time.sleep(0.35)
 
-        # Exportar
-        exportar_btn = wait.until(EC.presence_of_element_located((By.XPATH, "//a[contains(., 'Exportar')]")))
-        driver.execute_script("arguments[0].click();", exportar_btn)
-
-        # Esperar 5 segundos para que se genere el archivo
-        time.sleep(5)
+        # ----- EXPORTAR -----
+        try:
+            exportar_btn = wait.until(EC.presence_of_element_located((By.XPATH, "//a[contains(., 'Exportar')]")))
+            driver.execute_script("arguments[0].click();", exportar_btn)
+            time.sleep(5)  # esperar generación
+        except Exception as e:
+            bot2.edit_message_text(f"❌ Error al exportar: {e}", chat_id, progreso_msg.message_id)
+            return
 
         for i in range(1, 11):
             actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 4, barra(i))
             time.sleep(0.35)
 
-        # Abrir notificaciones y descargar archivo
-        driver.execute_script("arguments[0].click();", wait.until(EC.presence_of_element_located((By.ID, "spnNotiCampa"))))
-        time.sleep(2)
-
-        enlaces = driver.find_elements(By.XPATH, "//p[@class='noti-text']/a[contains(@href, '.xlsx')]")
-        if not enlaces:
-            bot2.edit_message_text("❌ No se encontró ningún archivo .xlsx.", chat_id, progreso_msg.message_id)
+        # ----- DESCARGA -----
+        try:
+            driver.execute_script("arguments[0].click();", wait.until(EC.presence_of_element_located((By.ID, "spnNotiCampa"))))
+            time.sleep(2)
+            enlaces = driver.find_elements(By.XPATH, "//p[@class='noti-text']/a[contains(@href, '.xlsx')]")
+            if not enlaces:
+                bot2.edit_message_text("❌ No se encontró ningún archivo .xlsx.", chat_id, progreso_msg.message_id)
+                return
+            url_archivo = enlaces[0].get_attribute("href")
+            driver.get(url_archivo)
+            filename = os.path.basename(url_archivo)
+            ruta_descarga = os.path.join(DOWNLOAD_FOLDER, filename)
+            if not esperar_descarga_completa(ruta_descarga):
+                bot2.edit_message_text("❌ La descarga del archivo no se completó correctamente.", chat_id, progreso_msg.message_id)
+                return
+        except Exception as e:
+            bot2.edit_message_text(f"❌ Error al descargar archivo: {e}", chat_id, progreso_msg.message_id)
             return
 
-        url_archivo = enlaces[0].get_attribute("href")
-        driver.get(url_archivo)
-
-        filename = os.path.basename(url_archivo)
-        ruta_descarga = os.path.join(DOWNLOAD_FOLDER, filename)
-
-        if not esperar_descarga_completa(ruta_descarga):
-            bot2.edit_message_text("❌ La descarga del archivo no se completó correctamente.", chat_id, progreso_msg.message_id)
-            return
-
+        # ----- PROCESAR EXCEL -----
         fila_inicio = detectar_fila_inicio(ruta_descarga)
         if fila_inicio is None:
-            raise ValueError("No se encontró la fila de inicio.")
+            bot2.edit_message_text("❌ No se encontró la fila de inicio en el Excel.", chat_id, progreso_msg.message_id)
+            return
 
         df = pd.read_excel(ruta_descarga, skiprows=fila_inicio - 1, engine="openpyxl")
         df.columns = df.columns.str.strip()
-
         if df.empty:
             bot2.edit_message_text("⚠️ El archivo exportado está vacío o mal estructurado.", chat_id, progreso_msg.message_id)
             return
@@ -187,7 +223,7 @@ def exportar_y_enviar_2(chat_id):
         hora_fin = hora_actual_lima()
         duracion = hora_fin - hora_inicio
 
-        # Mensaje final al usuario
+        # Mensaje final
         bot2.edit_message_text(
             f"✅ Archivo exportado y procesado correctamente.\n"
             f"📎 Nombre: {filename}\n"
@@ -198,36 +234,13 @@ def exportar_y_enviar_2(chat_id):
             chat_id, progreso_msg.message_id, parse_mode="Markdown"
         )
 
-        # Enviar datos del proceso a la API
-        proxima_actualizacion = (hora_fin + timedelta(seconds=334)).strftime('%H:%M:%S')
-        payload = {
-            "nombre_archivo": filename,
-            "fecha_filtrada": hoy,
-            "hora_inicio": hora_inicio.strftime('%H:%M:%S'),
-            "hora_fin": hora_fin.strftime('%H:%M:%S'),
-            "duracion": str(duracion).split('.')[0],
-            "proxima_actualizacion": proxima_actualizacion
-        }
-
-        try:
-            response = requests.post(
-                "https://tliperu.com/prueba/telegran/api_guardar_exportacion.php",
-                json=payload,
-                timeout=10
-            )
-            print("[INFO] Registro exportación enviado. Código:", response.status_code)
-            print("[INFO] Respuesta:", response.text)
-        except Exception as e:
-            print("[ERROR] Falló envío a API exportación:", e)
-
     except Exception as e:
         error = traceback.format_exc()
         print(f"[ERROR] exportar_y_enviar_2:\n{error}")
         bot2.edit_message_text(f"⚠️ Error durante el proceso:\n{e}", chat_id, progreso_msg.message_id)
-
     finally:
-        driver.quit()
-
+        if driver:
+            driver.quit()
 
 
 # Función para obtener la hora actual en Lima
