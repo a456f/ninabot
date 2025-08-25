@@ -101,57 +101,44 @@ def esperar_descarga_completa(filepath, timeout=30):
 
 
 def exportar_y_enviar_2(chat_id):
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-    wait = WebDriverWait(driver, 30)
-    progreso_msg = bot2.send_message(chat_id, "📱 Iniciando proceso...")
-
-    hora_inicio = hora_actual_lima()
-
     try:
-        # Login
+        # Configuración de Chrome
+        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+        wait = WebDriverWait(driver, 30)
+        progreso_msg = bot2.send_message(chat_id, "📱 Iniciando proceso...")
+
+        hora_inicio = hora_actual_lima()
+
+        # ---------------------- LOGIN ----------------------
         driver.get("https://winbo-phx.azurewebsites.net/login.aspx")
         wait.until(EC.presence_of_element_located((By.ID, "txtUsuario"))).send_keys("brubio")
         wait.until(EC.presence_of_element_located((By.ID, "txtPassword"))).send_keys("M123456789")
         driver.find_element(By.ID, "BtnLoginInicial").click()
 
-        for i in range(1, 6):
-            actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 1, barra(i, 5))
-            time.sleep(0.25)
-
-        # Abrir módulo
+        # ---------------------- ABRIR MÓDULO ----------------------
         wait.until(EC.presence_of_element_located((By.ID, "menuSistema")))
-        driver.execute_script("AbrirPagi('Paginas/OperadoresBO/misOrdenes.aspx?to=1&nombre=Seguimiento+de+Ordenes&id=74&icono=&edit=S','74');")
+        driver.execute_script(
+            "AbrirPagi('Paginas/OperadoresBO/misOrdenes.aspx?to=1&nombre=Seguimiento+de+Ordenes&id=74&icono=&edit=S','74');"
+        )
 
-        for i in range(1, 6):
-            actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 2, barra(i, 5))
-            time.sleep(0.25)
-
-        # Filtrar por fecha actual
+        # ---------------------- FILTRAR FECHA ----------------------
         hoy = obtener_fecha_filtrado()
         wait.until(EC.presence_of_element_located((By.ID, "txtDesdeFechaVisi74")))
         wait.until(EC.presence_of_element_located((By.ID, "txtHastaFechaVisi74")))
         driver.execute_script(f"document.getElementById('txtDesdeFechaVisi74').value = '{hoy}'")
         driver.execute_script(f"document.getElementById('txtHastaFechaVisi74').value = '{hoy}'")
 
-        filtrar_btn = wait.until(EC.presence_of_element_located((By.ID, "BtnFiltrar74")))
+        filtrar_btn = wait.until(EC.element_to_be_clickable((By.ID, "BtnFiltrar74")))
         driver.execute_script("arguments[0].click();", filtrar_btn)
 
-        for i in range(1, 11):
-            actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 3, barra(i))
-            time.sleep(0.35)
-
-        # Exportar
-        exportar_btn = wait.until(EC.presence_of_element_located((By.XPATH, "//a[contains(., 'Exportar')]")))
+        # ---------------------- EXPORTAR ----------------------
+        exportar_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[contains(., 'Exportar')]")))
         driver.execute_script("arguments[0].click();", exportar_btn)
 
-        # Esperar 5 segundos para que se genere el archivo
+        # Espera para que se genere el archivo
         time.sleep(5)
 
-        for i in range(1, 11):
-            actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 4, barra(i))
-            time.sleep(0.35)
-
-        # Abrir notificaciones y descargar archivo
+        # ---------------------- DESCARGAR ARCHIVO ----------------------
         driver.execute_script("arguments[0].click();", wait.until(EC.presence_of_element_located((By.ID, "spnNotiCampa"))))
         time.sleep(2)
 
@@ -161,15 +148,19 @@ def exportar_y_enviar_2(chat_id):
             return
 
         url_archivo = enlaces[0].get_attribute("href")
-        driver.get(url_archivo)
-
         filename = os.path.basename(url_archivo)
         ruta_descarga = os.path.join(DOWNLOAD_FOLDER, filename)
 
-        if not esperar_descarga_completa(ruta_descarga):
-            bot2.edit_message_text("❌ La descarga del archivo no se completó correctamente.", chat_id, progreso_msg.message_id)
+        # Descargar con requests (evita bloqueos de Selenium)
+        try:
+            r = requests.get(url_archivo, timeout=30)
+            with open(ruta_descarga, "wb") as f:
+                f.write(r.content)
+        except requests.exceptions.Timeout:
+            bot2.edit_message_text("❌ Descarga del archivo superó el tiempo de espera.", chat_id, progreso_msg.message_id)
             return
 
+        # ---------------------- PROCESAR ARCHIVO ----------------------
         fila_inicio = detectar_fila_inicio(ruta_descarga)
         if fila_inicio is None:
             raise ValueError("No se encontró la fila de inicio.")
@@ -178,47 +169,43 @@ def exportar_y_enviar_2(chat_id):
         df.columns = df.columns.str.strip()
 
         if df.empty:
-            bot2.edit_message_text("⚠️ El archivo exportado está vacío o mal estructurado.", chat_id, progreso_msg.message_id)
+            bot2.edit_message_text("⚠️ El archivo exportado está vacío.", chat_id, progreso_msg.message_id)
             return
 
         estado_global.guardar_estado(f"📁 Archivo descargado automáticamente: {filename}", ruta_descarga)
         enviar_datos_a_api(df)
 
+        # ---------------------- ENVIAR CONFIRMACIÓN ----------------------
         hora_fin = hora_actual_lima()
         duracion = hora_fin - hora_inicio
 
-        # Mensaje final al usuario
         bot2.edit_message_text(
             f"✅ Archivo exportado y procesado correctamente.\n"
-            f"📎 Nombre: `{filename}`\n"
+            f"📎 `{filename}`\n"
             f"📅 Fecha filtrada: {hoy}\n"
             f"🕒 Inicio: {hora_inicio.strftime('%H:%M:%S')}\n"
             f"🕓 Fin: {hora_fin.strftime('%H:%M:%S')}\n"
-            f"⏱️ Duración total: {str(duracion).split('.')[0]}",
+            f"⏱️ Duración: {str(duracion).split('.')[0]}",
             chat_id, progreso_msg.message_id, parse_mode="Markdown"
         )
 
-        # Enviar datos del proceso a la API
-        proxima_actualizacion = (hora_fin + timedelta(seconds=334)).strftime('%H:%M:%S')
-        payload = {
-            "nombre_archivo": filename,
-            "fecha_filtrada": hoy,
-            "hora_inicio": hora_inicio.strftime('%H:%M:%S'),
-            "hora_fin": hora_fin.strftime('%H:%M:%S'),
-            "duracion": str(duracion).split('.')[0],
-            "proxima_actualizacion": proxima_actualizacion
-        }
-
+        # Enviar datos a API con timeout controlado
         try:
             response = requests.post(
                 "https://tliperu.com/prueba/telegran/api_guardar_exportacion.php",
-                json=payload,
+                json={
+                    "nombre_archivo": filename,
+                    "fecha_filtrada": hoy,
+                    "hora_inicio": hora_inicio.strftime('%H:%M:%S'),
+                    "hora_fin": hora_fin.strftime('%H:%M:%S'),
+                    "duracion": str(duracion).split('.')[0],
+                    "proxima_actualizacion": (hora_fin + timedelta(seconds=334)).strftime('%H:%M:%S')
+                },
                 timeout=10
             )
             print("[INFO] Registro exportación enviado. Código:", response.status_code)
-            print("[INFO] Respuesta:", response.text)
-        except Exception as e:
-            print("[ERROR] Falló envío a API exportación:", e)
+        except requests.exceptions.Timeout:
+            print("[ERROR] Timeout al enviar datos a la API.")
 
     except Exception as e:
         error = traceback.format_exc()
