@@ -54,7 +54,7 @@ modo_activo_2 = False
 chat_id_global_2 = None
 # Diccionario para usuarios autorizados con contraseña
 usuarios_autorizados_2 = {
-    123456789: "5540982553"  # <--- Reemplaza 123456789 con tu chat_id de Telegram
+    5540982553: "185946"  # <--- Reemplaza 123456789 con tu chat_id de Telegram
 }
 CLAVE_ENCENDER_2 = "185946"
 CLAVE_APAGAR_2 = "4582"
