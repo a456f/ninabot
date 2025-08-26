@@ -253,9 +253,6 @@ def bucle_automatico_2():
     while True:
         try:
             ahora = hora_actual_lima()
-            hora_actual = ahora.hour
-            minuto_actual = ahora.minute
-            segundo_actual = ahora.second
             dia_actual = ahora.date()
 
             # Reiniciar banderas si cambió de día
@@ -264,9 +261,22 @@ def bucle_automatico_2():
                 mensaje_descanso_enviado = False
                 ultimo_dia = dia_actual
 
+            # Esperar hasta el siguiente múltiplo de 5 minutos
+            minuto_actual = ahora.minute
+            segundo_actual = ahora.second
+            segundos_para_siguiente = ((5 - (minuto_actual % 5)) * 60) - segundo_actual
+            print(f"[DEBUG] Esperando {segundos_para_siguiente} segundos hasta el siguiente múltiplo de 5 minutos...")
+            time.sleep(segundos_para_siguiente)
+
+            ahora = hora_actual_lima()
+            hora_actual = ahora.hour
+            minuto_actual = ahora.minute
+
             if not bloqueo_auto.acquire(blocking=False):
                 print("⚠️ Ya hay un proceso automático en ejecución. Se omite esta iteración.")
-            elif modo_activo_2 and chat_id_global_2:
+                continue
+
+            if modo_activo_2 and chat_id_global_2:
                 print(f"[INFO] Hora actual: {ahora.strftime('%Y-%m-%d %H:%M:%S')}")
 
                 # Buenos días
@@ -278,16 +288,12 @@ def bucle_automatico_2():
                         print(f"Error al enviar saludo matutino: {e}")
 
                 # Proceso automático
-                if (7 <= hora_actual < 21) or (hora_actual == 21 and minuto_actual == 0):
+                if 7 <= hora_actual < 21 or (hora_actual == 21 and minuto_actual == 0):
                     try:
                         print("[INFO] Ejecutando proceso automático...")
                         bot2.send_message(chat_id_global_2, "⏳ Iniciando proceso automático...")
-
                         exportar_y_enviar_2(chat_id_global_2)
-
                         bot2.send_message(chat_id_global_2, "✅ Proceso automático terminado.")
-                    except requests.exceptions.ReadTimeout:
-                        print("⏱️ Timeout al contactar con la API de Telegram.")
                     except Exception as e:
                         print(f"❌ Error en exportación: {e}")
                         try:
@@ -318,13 +324,6 @@ def bucle_automatico_2():
         finally:
             if bloqueo_auto.locked():
                 bloqueo_auto.release()
-
-        # ⏳ Esperar hasta el próximo múltiplo de 5 minutos
-        ahora = datetime.now(pytz.timezone("America/Lima"))
-        segundos_pasados = (ahora.minute % 5) * 60 + ahora.second
-        espera = 300 - segundos_pasados
-        print(f"[DEBUG] Esperando {espera} segundos para la próxima ejecución.")
-        time.sleep(espera)
 
 
 @bot2.message_handler(commands=['info'])
