@@ -359,6 +359,11 @@ def exportar_handler(msg):
         error = traceback.format_exc()
         bot2.send_message(msg.chat.id, f"❌ Error inesperado:\n{e}")
 
+
+# Diccionario para usuarios autorizados con contraseña
+usuarios_autorizados_2 = {
+    123456789: "5540982553"  # <--- Reemplaza 123456789 con tu chat_id de Telegram
+}
 @bot2.message_handler(commands=['encender'])
 def encender_handler(msg):
     global modo_activo_2, chat_id_global_2
