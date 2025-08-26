@@ -362,15 +362,26 @@ def exportar_handler(msg):
 @bot2.message_handler(commands=['encender'])
 def encender_handler(msg):
     global modo_activo_2, chat_id_global_2
+    chat_id_global_2 = msg.chat.id
+
     if modo_activo_2:
         bot2.send_message(msg.chat.id, "⚠️ El bot ya está ENCENDIDO.")
         return
+
     if msg.chat.id not in usuarios_autorizados_2:
         bot2.send_message(msg.chat.id, "❌ Usuario no autorizado.")
         return
-    chat_id_global_2 = msg.chat.id
-    modo_activo_2 = True
-    bot2.send_message(msg.chat.id, "✅ Modo automático ENCENDIDO.")
+
+    bot2.send_message(msg.chat.id, "🔑 Ingresa la contraseña para ENCENDER el modo automático:")
+
+    @bot2.message_handler(func=lambda m: m.chat.id == msg.chat.id)
+    def recibir_clave(m):
+        if m.text == usuarios_autorizados_2[msg.chat.id]:
+            modo_activo_2 = True
+            bot2.send_message(msg.chat.id, "✅ Modo automático ENCENDIDO.")
+        else:
+            bot2.send_message(msg.chat.id, "❌ Contraseña incorrecta. No se pudo ENCENDER.")
+        bot2.clear_step_handler_by_chat_id(msg.chat.id)
 
 @bot2.message_handler(commands=['apagar'])
 def apagar_handler(msg):
