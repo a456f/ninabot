@@ -13,7 +13,6 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
-from requests.exceptions import ReadTimeout
 import pytz
 
 # ⬇️ Configurar zona horaria
@@ -55,8 +54,6 @@ chat_id_global_2 = None
 usuarios_autorizados_2 = {
     5540982553: "185946"  # <--- tu chat_id y contraseña
 }
-CLAVE_ENCENDER_2 = "185946"
-CLAVE_APAGAR_2 = "4582"
 bloqueo_auto = threading.Lock()
 
 # ===============================
@@ -209,24 +206,28 @@ def exportar_y_enviar_2(chat_id):
             chat_id, progreso_msg.message_id, parse_mode="Markdown"
         )
 
-        proxima_actualizacion = (hora_fin + timedelta(seconds=334)).strftime('%H:%M:%S')
+        # ====== Envío a API con reintentos ======
         payload = {
             "nombre_archivo": filename,
             "fecha_filtrada": hoy,
             "hora_inicio": hora_inicio.strftime('%H:%M:%S'),
             "hora_fin": hora_fin.strftime('%H:%M:%S'),
             "duracion": str(duracion).split('.')[0],
-            "proxima_actualizacion": proxima_actualizacion
+            "proxima_actualizacion": (hora_fin + timedelta(seconds=334)).strftime('%H:%M:%S')
         }
-        try:
-            response = requests.post(
-                "https://tliperu.com/prueba/telegran/api_guardar_exportacion.php",
-                json=payload,
-                timeout=10
-            )
-            print("[INFO] Registro exportación enviado. Código:", response.status_code)
-        except Exception as e:
-            print("[ERROR] Falló envío a API exportación:", e)
+
+        for intento in range(3):
+            try:
+                response = requests.post(
+                    "https://tliperu.com/prueba/telegran/api_guardar_exportacion.php",
+                    json=payload,
+                    timeout=10
+                )
+                print("[INFO] Registro exportación enviado. Código:", response.status_code)
+                break
+            except Exception as e:
+                print(f"[WARNING] Intento {intento+1} falló: {e}")
+                time.sleep(5)
 
     except Exception as e:
         error = traceback.format_exc()
@@ -236,7 +237,7 @@ def exportar_y_enviar_2(chat_id):
         driver.quit()
 
 # ===============================
-# Bucle automático corregido
+# Bucle automático robusto
 # ===============================
 def bucle_automatico_2():
     global mensaje_buenos_dias_enviado, mensaje_descanso_enviado
@@ -294,15 +295,17 @@ def bucle_automatico_2():
                         bot2.send_message(chat_id_global_2, "⏳ Iniciando proceso automático...")
                         inicio_proceso = hora_actual_lima()
 
+                        # ======= Exportar y procesar archivo =======
                         exportar_y_enviar_2(chat_id_global_2)
 
                         fin_proceso = hora_actual_lima()
                         duracion = fin_proceso - inicio_proceso
                         print(f"[INFO] Proceso finalizado en {duracion}")
-
                         bot2.send_message(chat_id_global_2, "✅ Proceso automático terminado.")
+
                     except Exception as e:
-                        print(f"❌ Error en exportación: {e}")
+                        error = traceback.format_exc()
+                        print(f"❌ Error en exportación: {error}")
                         try:
                             bot2.send_message(chat_id_global_2, f"⚠️ Error en automático:\n{e}")
                         except Exception as envio_error:
@@ -323,7 +326,8 @@ def bucle_automatico_2():
                 print("[INFO] Modo automático inactivo o sin chat definido.")
 
         except Exception as e:
-            print(f"[ERROR] bucle_automatico_2: {e}")
+            error = traceback.format_exc()
+            print(f"[ERROR] bucle_automatico_2: {error}")
             try:
                 if chat_id_global_2:
                     bot2.send_message(chat_id_global_2, f"⚠️ Error en automático:\n{e}")
