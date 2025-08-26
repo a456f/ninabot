@@ -52,7 +52,10 @@ options.add_argument('--disable-dev-shm-usage')
 # ===============================
 modo_activo_2 = False
 chat_id_global_2 = None
-usuarios_autorizados_2 = {}
+# Diccionario para usuarios autorizados con contraseña
+usuarios_autorizados_2 = {
+    123456789: "5540982553"  # <--- Reemplaza 123456789 con tu chat_id de Telegram
+}
 CLAVE_ENCENDER_2 = "185946"
 CLAVE_APAGAR_2 = "4582"
 bloqueo_auto = threading.Lock()
@@ -360,10 +363,7 @@ def exportar_handler(msg):
         bot2.send_message(msg.chat.id, f"❌ Error inesperado:\n{e}")
 
 
-# Diccionario para usuarios autorizados con contraseña
-usuarios_autorizados_2 = {
-    123456789: "5540982553"  # <--- Reemplaza 123456789 con tu chat_id de Telegram
-}
+
 @bot2.message_handler(commands=['encender'])
 def encender_handler(msg):
     global modo_activo_2, chat_id_global_2
