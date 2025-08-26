@@ -52,9 +52,8 @@ options.add_argument('--disable-dev-shm-usage')
 # ===============================
 modo_activo_2 = False
 chat_id_global_2 = None
-# Diccionario para usuarios autorizados con contraseña
 usuarios_autorizados_2 = {
-    5540982553: "185946"  # <--- Reemplaza 123456789 con tu chat_id de Telegram
+    5540982553: "185946"  # <--- tu chat_id y contraseña
 }
 CLAVE_ENCENDER_2 = "185946"
 CLAVE_APAGAR_2 = "4582"
@@ -106,7 +105,7 @@ def esperar_descarga_completa(filepath, timeout=30):
         if os.path.exists(filepath) and not filepath.endswith(".crdownload"):
             try:
                 with open(filepath, "rb"):
-                    if os.path.getsize(filepath) > 10 * 1024:  # mínimo 10 KB
+                    if os.path.getsize(filepath) > 10 * 1024:
                         return True
             except Exception:
                 pass
@@ -159,7 +158,7 @@ def exportar_y_enviar_2(chat_id):
         # Exportar
         exportar_btn = wait.until(EC.presence_of_element_located((By.XPATH, "//a[contains(., 'Exportar')]")))
         driver.execute_script("arguments[0].click();", exportar_btn)
-        time.sleep(5)  # Esperar generación del archivo
+        time.sleep(5)
 
         for i in range(1, 11):
             actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 4, barra(i))
@@ -199,7 +198,7 @@ def exportar_y_enviar_2(chat_id):
         hora_fin = hora_actual_lima()
         duracion = hora_fin - hora_inicio
 
-        # Mensaje final al usuario
+        # Mensaje final
         bot2.edit_message_text(
             f"✅ Archivo exportado y procesado correctamente.\n"
             f"📎 Nombre: {filename}\n"
@@ -210,7 +209,6 @@ def exportar_y_enviar_2(chat_id):
             chat_id, progreso_msg.message_id, parse_mode="Markdown"
         )
 
-        # Enviar registro a API
         proxima_actualizacion = (hora_fin + timedelta(seconds=334)).strftime('%H:%M:%S')
         payload = {
             "nombre_archivo": filename,
@@ -238,7 +236,7 @@ def exportar_y_enviar_2(chat_id):
         driver.quit()
 
 # ===============================
-# Bucle automático optimizado (ejecución exacta en múltiplos de 5 minutos)
+# Bucle automático corregido
 # ===============================
 def bucle_automatico_2():
     global mensaje_buenos_dias_enviado, mensaje_descanso_enviado
@@ -251,20 +249,23 @@ def bucle_automatico_2():
             ahora = hora_actual_lima()
             dia_actual = ahora.date()
 
-            # Reiniciar banderas si cambió de día
             if dia_actual != ultimo_dia:
                 mensaje_buenos_dias_enviado = False
                 mensaje_descanso_enviado = False
                 ultimo_dia = dia_actual
 
-            # Calcular siguiente múltiplo de 5 minutos exacto
-            minuto_actual = ahora.minute
-            segundo_actual = ahora.second
-            siguiente_minuto = (minuto_actual - (minuto_actual % 5) + 5) % 60
-            espera_segundos = ((siguiente_minuto - minuto_actual) * 60) - segundo_actual
-            if espera_segundos <= 0:
-                espera_segundos += 300  # Asegurar que siempre sea positivo
+            # ======= Calcular tiempo hasta el siguiente múltiplo de 5 minutos =======
+            minuto_siguiente = (ahora.minute // 5 + 1) * 5
+            if minuto_siguiente >= 60:
+                minuto_siguiente = 0
+                siguiente_hora = ahora.replace(hour=ahora.hour+1 if ahora.hour < 23 else 0,
+                                               minute=0, second=0, microsecond=0)
+            else:
+                siguiente_hora = ahora.replace(minute=minuto_siguiente, second=0, microsecond=0)
 
+            espera_segundos = (siguiente_hora - ahora).total_seconds()
+            if espera_segundos < 0:
+                espera_segundos = 0
             print(f"[DEBUG] Esperando {espera_segundos} segundos hasta el próximo múltiplo de 5 minutos...")
             time.sleep(espera_segundos)
 
@@ -287,7 +288,6 @@ def bucle_automatico_2():
                     except Exception as e:
                         print(f"Error al enviar saludo matutino: {e}")
 
-                # Ejecutar proceso automático solo en horario permitido
                 if 7 <= hora_actual < 21 or (hora_actual == 21 and minuto_actual == 0):
                     try:
                         print("[INFO] Ejecutando proceso automático...")
@@ -308,7 +308,7 @@ def bucle_automatico_2():
                         except Exception as envio_error:
                             print(f"No se pudo notificar el error: {envio_error}")
 
-                    # Mensaje de despedida al final del día
+                    # Mensaje de descanso al final del día
                     if hora_actual == 21 and minuto_actual == 0 and not mensaje_descanso_enviado:
                         print("[INFO] Esperando 30s para enviar mensaje de descanso...")
                         time.sleep(30)
@@ -361,8 +361,6 @@ def exportar_handler(msg):
     except Exception as e:
         error = traceback.format_exc()
         bot2.send_message(msg.chat.id, f"❌ Error inesperado:\n{e}")
-
-
 
 @bot2.message_handler(commands=['encender'])
 def encender_handler(msg):
