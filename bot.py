@@ -16,13 +16,16 @@ from webdriver_manager.chrome import ChromeDriverManager
 from requests.exceptions import ReadTimeout
 import pytz
 
-# ⬇️ AÑADE ESTE BLOQUE DESPUÉS DE LOS IMPORTS
+# ⬇️ Configurar zona horaria
 os.environ['TZ'] = 'America/Lima'
 time.tzset()
 
 import estado_global
 from main import detectar_fila_inicio, enviar_datos_a_api
 
+# ===============================
+# Configuración del bot y carpeta de descargas
+# ===============================
 TOKEN_2 = '7922512452:AAGhfzYMzhJPfV1TA1dBy2w6hICCIXHdNds'
 bot2 = telebot.TeleBot(TOKEN_2)
 
@@ -44,11 +47,22 @@ options.add_argument('--headless')
 options.add_argument('--no-sandbox')
 options.add_argument('--disable-dev-shm-usage')
 
+# ===============================
+# Variables globales
+# ===============================
 modo_activo_2 = False
 chat_id_global_2 = None
 usuarios_autorizados_2 = {}
 CLAVE_ENCENDER_2 = "185946"
 CLAVE_APAGAR_2 = "4582"
+bloqueo_auto = threading.Lock()
+
+# ===============================
+# Funciones auxiliares
+# ===============================
+def hora_actual_lima():
+    zona_lima = pytz.timezone("America/Lima")
+    return datetime.now(zona_lima)
 
 def barra(seg, total=10, largo=10):
     llenado = int((seg / total) * largo)
@@ -72,10 +86,8 @@ def actualizar_mensaje(bot, chat_id, msg_id, estado_actual, barra_progreso=""):
     except:
         pass
 
-
 def obtener_fecha_filtrado():
-    zona_lima = pytz.timezone("America/Lima")
-    ahora = datetime.now(zona_lima)
+    ahora = hora_actual_lima()
     if ahora.hour < 1:
         ahora -= timedelta(days=1)
     return ahora.strftime("%d/%m/%Y")
@@ -98,8 +110,9 @@ def esperar_descarga_completa(filepath, timeout=30):
         time.sleep(1)
     return False
 
-
-
+# ===============================
+# Función principal de exportación
+# ===============================
 def exportar_y_enviar_2(chat_id):
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
     wait = WebDriverWait(driver, 30)
@@ -143,18 +156,15 @@ def exportar_y_enviar_2(chat_id):
         # Exportar
         exportar_btn = wait.until(EC.presence_of_element_located((By.XPATH, "//a[contains(., 'Exportar')]")))
         driver.execute_script("arguments[0].click();", exportar_btn)
-
-        # Esperar 5 segundos para que se genere el archivo
-        time.sleep(5)
+        time.sleep(5)  # Esperar generación del archivo
 
         for i in range(1, 11):
             actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 4, barra(i))
             time.sleep(0.35)
 
-        # Abrir notificaciones y descargar archivo
+        # Descargar archivo desde notificación
         driver.execute_script("arguments[0].click();", wait.until(EC.presence_of_element_located((By.ID, "spnNotiCampa"))))
         time.sleep(2)
-
         enlaces = driver.find_elements(By.XPATH, "//p[@class='noti-text']/a[contains(@href, '.xlsx')]")
         if not enlaces:
             bot2.edit_message_text("❌ No se encontró ningún archivo .xlsx.", chat_id, progreso_msg.message_id)
@@ -162,7 +172,6 @@ def exportar_y_enviar_2(chat_id):
 
         url_archivo = enlaces[0].get_attribute("href")
         driver.get(url_archivo)
-
         filename = os.path.basename(url_archivo)
         ruta_descarga = os.path.join(DOWNLOAD_FOLDER, filename)
 
@@ -198,7 +207,7 @@ def exportar_y_enviar_2(chat_id):
             chat_id, progreso_msg.message_id, parse_mode="Markdown"
         )
 
-        # Enviar datos del proceso a la API
+        # Enviar registro a API
         proxima_actualizacion = (hora_fin + timedelta(seconds=334)).strftime('%H:%M:%S')
         payload = {
             "nombre_archivo": filename,
@@ -208,7 +217,6 @@ def exportar_y_enviar_2(chat_id):
             "duracion": str(duracion).split('.')[0],
             "proxima_actualizacion": proxima_actualizacion
         }
-
         try:
             response = requests.post(
                 "https://tliperu.com/prueba/telegran/api_guardar_exportacion.php",
@@ -216,7 +224,6 @@ def exportar_y_enviar_2(chat_id):
                 timeout=10
             )
             print("[INFO] Registro exportación enviado. Código:", response.status_code)
-            print("[INFO] Respuesta:", response.text)
         except Exception as e:
             print("[ERROR] Falló envío a API exportación:", e)
 
@@ -224,26 +231,12 @@ def exportar_y_enviar_2(chat_id):
         error = traceback.format_exc()
         print(f"[ERROR] exportar_y_enviar_2:\n{error}")
         bot2.edit_message_text(f"⚠️ Error durante el proceso:\n{e}", chat_id, progreso_msg.message_id)
-
     finally:
         driver.quit()
 
-
-
-# Función para obtener la hora actual en Lima
-def hora_actual_lima():
-    zona_lima = pytz.timezone("America/Lima")
-    return datetime.now(zona_lima)
-
-import threading
-from datetime import datetime
-import pytz
-import time
-import traceback
-import requests
-
-bloqueo_auto = threading.Lock()
-
+# ===============================
+# Bucle automático optimizado (ejecución exacta en múltiplos de 5 minutos)
+# ===============================
 def bucle_automatico_2():
     global mensaje_buenos_dias_enviado, mensaje_descanso_enviado
     mensaje_buenos_dias_enviado = False
@@ -261,12 +254,16 @@ def bucle_automatico_2():
                 mensaje_descanso_enviado = False
                 ultimo_dia = dia_actual
 
-            # Esperar hasta el siguiente múltiplo de 5 minutos
+            # Calcular siguiente múltiplo de 5 minutos exacto
             minuto_actual = ahora.minute
             segundo_actual = ahora.second
-            segundos_para_siguiente = ((5 - (minuto_actual % 5)) * 60) - segundo_actual
-            print(f"[DEBUG] Esperando {segundos_para_siguiente} segundos hasta el siguiente múltiplo de 5 minutos...")
-            time.sleep(segundos_para_siguiente)
+            siguiente_minuto = (minuto_actual - (minuto_actual % 5) + 5) % 60
+            espera_segundos = ((siguiente_minuto - minuto_actual) * 60) - segundo_actual
+            if espera_segundos <= 0:
+                espera_segundos += 300  # Asegurar que siempre sea positivo
+
+            print(f"[DEBUG] Esperando {espera_segundos} segundos hasta el próximo múltiplo de 5 minutos...")
+            time.sleep(espera_segundos)
 
             ahora = hora_actual_lima()
             hora_actual = ahora.hour
@@ -279,7 +276,7 @@ def bucle_automatico_2():
             if modo_activo_2 and chat_id_global_2:
                 print(f"[INFO] Hora actual: {ahora.strftime('%Y-%m-%d %H:%M:%S')}")
 
-                # Buenos días
+                # Mensaje de buenos días
                 if hora_actual == 7 and minuto_actual == 0 and not mensaje_buenos_dias_enviado:
                     try:
                         bot2.send_message(chat_id_global_2, "☀️ ¡Buen día! Estoy iniciando mi horario de trabajo.")
@@ -287,12 +284,19 @@ def bucle_automatico_2():
                     except Exception as e:
                         print(f"Error al enviar saludo matutino: {e}")
 
-                # Proceso automático
+                # Ejecutar proceso automático solo en horario permitido
                 if 7 <= hora_actual < 21 or (hora_actual == 21 and minuto_actual == 0):
                     try:
                         print("[INFO] Ejecutando proceso automático...")
                         bot2.send_message(chat_id_global_2, "⏳ Iniciando proceso automático...")
+                        inicio_proceso = hora_actual_lima()
+
                         exportar_y_enviar_2(chat_id_global_2)
+
+                        fin_proceso = hora_actual_lima()
+                        duracion = fin_proceso - inicio_proceso
+                        print(f"[INFO] Proceso finalizado en {duracion}")
+
                         bot2.send_message(chat_id_global_2, "✅ Proceso automático terminado.")
                     except Exception as e:
                         print(f"❌ Error en exportación: {e}")
@@ -301,7 +305,7 @@ def bucle_automatico_2():
                         except Exception as envio_error:
                             print(f"No se pudo notificar el error: {envio_error}")
 
-                    # Mensaje de despedida
+                    # Mensaje de despedida al final del día
                     if hora_actual == 21 and minuto_actual == 0 and not mensaje_descanso_enviado:
                         print("[INFO] Esperando 30s para enviar mensaje de descanso...")
                         time.sleep(30)
@@ -314,6 +318,7 @@ def bucle_automatico_2():
                     print("[INFO] Fuera de horario (7:00 a.m. – 9:00 p.m.). Esperando...")
             else:
                 print("[INFO] Modo automático inactivo o sin chat definido.")
+
         except Exception as e:
             print(f"[ERROR] bucle_automatico_2: {e}")
             try:
@@ -321,24 +326,25 @@ def bucle_automatico_2():
                     bot2.send_message(chat_id_global_2, f"⚠️ Error en automático:\n{e}")
             except Exception as envio_error:
                 print(f"No se pudo enviar el error por Telegram: {envio_error}")
+
         finally:
             if bloqueo_auto.locked():
                 bloqueo_auto.release()
 
-
+# ===============================
+# Handlers de Telegram
+# ===============================
 @bot2.message_handler(commands=['info'])
 def info_handler(msg):
     if not modo_activo_2:
         bot2.send_message(msg.chat.id, "❌ El modo automático está apagado.")
         return
-
     ahora = time.time()
     segundos_restantes = 300 - int(ahora) % 300
     minutos = segundos_restantes // 60
     segundos = segundos_restantes % 60
     texto = f"🕓 Faltan *{minutos}* minutos y *{segundos}* segundos para la siguiente ejecución automática."
     bot2.send_message(msg.chat.id, texto, parse_mode="Markdown")
-
 
 @bot2.message_handler(commands=['estadoexcel'])
 def estado_excel_handler(msg):
@@ -360,101 +366,26 @@ def encender_handler(msg):
         bot2.send_message(msg.chat.id, "⚠️ El bot ya está ENCENDIDO.")
         return
     if msg.chat.id not in usuarios_autorizados_2:
-        bot2.send_message(msg.chat.id, "🔐 Envía la clave para activar el modo automático.")
+        bot2.send_message(msg.chat.id, "❌ Usuario no autorizado.")
         return
-    modo_activo_2 = True
     chat_id_global_2 = msg.chat.id
-    bot2.send_message(msg.chat.id, "✅ Modo automático ACTIVADO.")
+    modo_activo_2 = True
+    bot2.send_message(msg.chat.id, "✅ Modo automático ENCENDIDO.")
 
 @bot2.message_handler(commands=['apagar'])
 def apagar_handler(msg):
     global modo_activo_2, chat_id_global_2
-    if not modo_activo_2:
-        bot2.send_message(msg.chat.id, "⚠️ El bot ya está APAGADO.")
-        return
-    if msg.chat.id not in usuarios_autorizados_2:
-        bot2.send_message(msg.chat.id, "🔐 Envía la clave para apagar.")
-        return
     modo_activo_2 = False
     chat_id_global_2 = None
-    usuarios_autorizados_2.pop(msg.chat.id, None)
-    bot2.send_message(msg.chat.id, "🛑 Modo automático DESACTIVADO.")
-    
-@bot2.message_handler(commands=['hora'])
-def hora_handler(msg):
-    zona_lima = pytz.timezone("America/Lima")
-    ahora = datetime.now(zona_lima)
-    hora_actual = ahora.strftime("%H:%M:%S")
-    fecha_filtrada = obtener_fecha_filtrado()
+    bot2.send_message(msg.chat.id, "⚠️ Modo automático APAGADO.")
 
-    bot2.send_message(msg.chat.id, f"📅 Fecha filtrada: {fecha_filtrada}\n🕒 Hora actual: {hora_actual}")
+# ===============================
+# Inicializar hilo automático
+# ===============================
+hilo_bucle_2 = threading.Thread(target=bucle_automatico_2, daemon=True)
+hilo_bucle_2.start()
 
-
-@bot2.message_handler(commands=['estado'])
-def estado_handler(msg):
-    estado = "✅ El bot está *ENCENDIDO*." if modo_activo_2 else "❌ El bot está *APAGADO*."
-
-    # Obtener nombre del usuario que activó el bot
-    if modo_activo_2 and chat_id_global_2:
-        try:
-            usuario = bot2.get_chat(chat_id_global_2)
-            nombre_usuario = f"{usuario.first_name or ''} {usuario.last_name or ''}".strip()
-            usuario_info = f"\n👤 *Activado por:* {nombre_usuario} ({chat_id_global_2})"
-        except Exception:
-            usuario_info = f"\n👤 *Activado por:* {chat_id_global_2}"
-    else:
-        usuario_info = ""
-
-    horario = "\n🕒 *Horario de funcionamiento:* 7:00 a.m. a 8:00 p.m."
-
-    comandos = """
-📦 *Comandos disponibles:*
-/exportar - Ejecutar exportación manual
-/encender - Activar modo automático
-/apagar - Desactivar modo automático
-/estado - Ver estado del bot
-/estadoexcel - Ver estado del archivo Excel
-"""
-
-    bot2.send_message(
-        msg.chat.id,
-        f"{estado}{usuario_info}{horario}\n{comandos}",
-        parse_mode="Markdown"
-    )
-
-
-@bot2.message_handler(func=lambda m: True)
-def clave_handler(msg):
-    global modo_activo_2, chat_id_global_2
-    if msg.text == CLAVE_ENCENDER_2:
-        usuarios_autorizados_2[msg.chat.id] = True
-        modo_activo_2 = True
-        chat_id_global_2 = msg.chat.id
-        bot2.send_message(msg.chat.id, "✅ Clave correcta. Modo automático ACTIVADO.")
-    elif msg.text == CLAVE_APAGAR_2:
-        if msg.chat.id in usuarios_autorizados_2:
-            modo_activo_2 = False
-            chat_id_global_2 = None
-            usuarios_autorizados_2.pop(msg.chat.id, None)
-            bot2.send_message(msg.chat.id, "🛑 Clave correcta. Bot APAGADO.")
-        else:
-            bot2.send_message(msg.chat.id, "🔐 No estás autorizado para apagar el bot.")
-    else:
-        if msg.chat.id not in usuarios_autorizados_2:
-            bot2.send_message(msg.chat.id, "❌ Clave incorrecta.")
-
-threading.Thread(target=bucle_automatico_2, daemon=True).start()
-print("🤖 Segundo bot ejecutándose...")
-
-def iniciar_bot2():
-    while True:
-        try:
-            bot2.polling(non_stop=True, timeout=60, long_polling_timeout=45)
-        except ReadTimeout:
-            print("⚠️ ReadTimeout detectado. Reintentando en 10 segundos...")
-            time.sleep(10)
-        except Exception as e:
-            print(f"⚠️ Error inesperado:\n{traceback.format_exc()}")
-            time.sleep(10)
-
-iniciar_bot2()
+# ===============================
+# Ejecutar bot de Telegram
+# ===============================
+bot2.infinity_polling()
