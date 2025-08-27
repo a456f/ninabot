@@ -104,10 +104,14 @@ def esperar_descarga_completa(filepath, timeout=30):
         time.sleep(1)
     return False
 
+# ===============================
+# Función principal de exportación
+# ===============================
 def exportar_y_enviar_2(chat_id):
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
     wait = WebDriverWait(driver, 30)
     progreso_msg = bot2.send_message(chat_id, "📱 Iniciando proceso...")
+
     hora_inicio = hora_actual_lima()
 
     try:
@@ -129,20 +133,23 @@ def exportar_y_enviar_2(chat_id):
             actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 2, barra(i, 5))
             time.sleep(0.25)
 
-        # Filtrar por fecha
+        # Filtrar por fecha actual
         hoy = obtener_fecha_filtrado()
         wait.until(EC.presence_of_element_located((By.ID, "txtDesdeFechaVisi74")))
         wait.until(EC.presence_of_element_located((By.ID, "txtHastaFechaVisi74")))
         driver.execute_script(f"document.getElementById('txtDesdeFechaVisi74').value = '{hoy}'")
         driver.execute_script(f"document.getElementById('txtHastaFechaVisi74').value = '{hoy}'")
-        driver.execute_script("arguments[0].click();", wait.until(EC.presence_of_element_located((By.ID, "BtnFiltrar74"))))
+
+        filtrar_btn = wait.until(EC.presence_of_element_located((By.ID, "BtnFiltrar74")))
+        driver.execute_script("arguments[0].click();", filtrar_btn)
 
         for i in range(1, 11):
             actualizar_mensaje(bot2, chat_id, progreso_msg.message_id, 3, barra(i))
             time.sleep(0.35)
 
         # Exportar
-        driver.execute_script("arguments[0].click();", wait.until(EC.presence_of_element_located((By.XPATH, "//a[contains(., 'Exportar')]"))))
+        exportar_btn = wait.until(EC.presence_of_element_located((By.XPATH, "//a[contains(., 'Exportar')]")))
+        driver.execute_script("arguments[0].click();", exportar_btn)
         time.sleep(5)
 
         for i in range(1, 11):
@@ -183,6 +190,7 @@ def exportar_y_enviar_2(chat_id):
         hora_fin = hora_actual_lima()
         duracion = hora_fin - hora_inicio
 
+        # Mensaje final
         bot2.edit_message_text(
             f"✅ Archivo exportado y procesado correctamente.\n"
             f"📎 Nombre: {filename}\n"
@@ -192,6 +200,29 @@ def exportar_y_enviar_2(chat_id):
             f"⏱️ Duración total: {str(duracion).split('.')[0]}",
             chat_id, progreso_msg.message_id, parse_mode="Markdown"
         )
+
+        # ====== Envío a API con reintentos ======
+        payload = {
+            "nombre_archivo": filename,
+            "fecha_filtrada": hoy,
+            "hora_inicio": hora_inicio.strftime('%H:%M:%S'),
+            "hora_fin": hora_fin.strftime('%H:%M:%S'),
+            "duracion": str(duracion).split('.')[0],
+            "proxima_actualizacion": (hora_fin + timedelta(seconds=334)).strftime('%H:%M:%S')
+        }
+
+        for intento in range(3):
+            try:
+                response = requests.post(
+                    "https://tliperu.com/prueba/telegran/api_guardar_exportacion.php",
+                    json=payload,
+                    timeout=10
+                )
+                print("[INFO] Registro exportación enviado. Código:", response.status_code)
+                break
+            except Exception as e:
+                print(f"[WARNING] Intento {intento+1} falló: {e}")
+                time.sleep(5)
 
     except Exception as e:
         error = traceback.format_exc()
