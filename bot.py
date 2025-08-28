@@ -263,14 +263,19 @@ def enviar_mensaje_telegram(chat_id, texto, intentos=3, espera=3):
     return False
 
 
+
 # ===============================
-# Bucle Automático Mejorado con reintentos
+# Bucle Automático Mejorado con reintentos + procesos de emergencia (una vez al día, respetando modo_activo_2)
 # ===============================
 def bucle_automatico_2():
     global mensaje_buenos_dias_enviado, mensaje_descanso_enviado
     mensaje_buenos_dias_enviado = False
     mensaje_descanso_enviado = False
     ultimo_dia = None
+
+    # Banderas para procesos de emergencia
+    emergencia_22_30_enviada = False
+    emergencia_23_58_enviada = False
 
     print("[INFO] Bucle automático iniciado y funcionando...")
 
@@ -283,6 +288,8 @@ def bucle_automatico_2():
             if dia_actual != ultimo_dia:
                 mensaje_buenos_dias_enviado = False
                 mensaje_descanso_enviado = False
+                emergencia_22_30_enviada = False
+                emergencia_23_58_enviada = False
                 ultimo_dia = dia_actual
 
             # Calcula próxima ejecución múltiplo de 5 min
@@ -304,12 +311,16 @@ def bucle_automatico_2():
             hora_actual = ahora.hour
             minuto_actual = ahora.minute
 
-            # Enviar saludo matutino
+            # ==============================
+            # Saludo matutino
+            # ==============================
             if hora_actual == 7 and minuto_actual == 0 and not mensaje_buenos_dias_enviado:
                 if enviar_mensaje_telegram(chat_id_global_2, "☀️ ¡Buen día! Estoy iniciando mi horario de trabajo."):
                     mensaje_buenos_dias_enviado = True
 
-            # Ejecutar dentro del horario
+            # ==============================
+            # Procesos normales (7:00 a 21:00)
+            # ==============================
             if 7 <= hora_actual < 21 or (hora_actual == 21 and minuto_actual == 0):
                 print(f"[INFO] Ejecutando proceso automático a las {ahora.strftime('%H:%M:%S')}")
                 with bloqueo_auto:
@@ -326,7 +337,7 @@ def bucle_automatico_2():
                         print("[ERROR] Proceso automático cancelado por exceder el tiempo límite.")
                         enviar_mensaje_telegram(chat_id_global_2, "⚠️ Proceso automático cancelado (timeout).")
 
-                # Enviar mensaje de descanso nocturno
+                # Mensaje de descanso nocturno
                 if hora_actual == 21 and minuto_actual == 0 and not mensaje_descanso_enviado:
                     time.sleep(30)
                     if enviar_mensaje_telegram(chat_id_global_2, "🌙 Buen trabajo por hoy. Me retiro a descansar."):
@@ -334,11 +345,31 @@ def bucle_automatico_2():
             else:
                 print("[INFO] Fuera de horario (7:00 a.m. – 9:00 p.m.). Esperando...")
 
+            # ==============================
+            # PROCESOS DE EMERGENCIA (UNA VEZ POR DÍA, SOLO SI ESTÁ ACTIVO)
+            # ==============================
+            if hora_actual == 22 and minuto_actual == 30 and not emergencia_22_30_enviada:
+                print("[EMERGENCIA] Ejecutando proceso especial de las 22:30...")
+                with bloqueo_auto:
+                    enviar_mensaje_telegram(chat_id_global_2, "🚨 Proceso de emergencia 22:30 iniciado...")
+                    ejecutar_con_timeout(exportar_y_enviar_2, (chat_id_global_2,), 300)
+                    enviar_mensaje_telegram(chat_id_global_2, "✅ Proceso de emergencia 22:30 completado.")
+                emergencia_22_30_enviada = True
+
+            if hora_actual == 23 and minuto_actual == 58 and not emergencia_23_58_enviada:
+                print("[EMERGENCIA] Ejecutando proceso especial de las 23:58...")
+                with bloqueo_auto:
+                    enviar_mensaje_telegram(chat_id_global_2, "🚨 Proceso de emergencia 23:58 iniciado...")
+                    ejecutar_con_timeout(exportar_y_enviar_2, (chat_id_global_2,), 300)
+                    enviar_mensaje_telegram(chat_id_global_2, "✅ Proceso de emergencia 23:58 completado.")
+                emergencia_23_58_enviada = True
+
         except Exception as e:
             error = traceback.format_exc()
             print(f"[ERROR] bucle_automatico_2: {error}")
             if chat_id_global_2:
                 enviar_mensaje_telegram(chat_id_global_2, f"⚠️ Error en automático:\n{e}")
+
 
 # ===============================
 # Handlers de Telegram
