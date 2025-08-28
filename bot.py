@@ -267,6 +267,9 @@ def enviar_mensaje_telegram(chat_id, texto, intentos=3, espera=3):
 # ===============================
 # Bucle Automático Mejorado con reintentos + procesos de emergencia (una vez al día, respetando modo_activo_2)
 # ===============================
+# ===============================
+# Bucle Automático Mejorado con reintentos + procesos de emergencia (avisos previos, respetando modo_activo_2)
+# ===============================
 def bucle_automatico_2():
     global mensaje_buenos_dias_enviado, mensaje_descanso_enviado
     mensaje_buenos_dias_enviado = False
@@ -276,6 +279,8 @@ def bucle_automatico_2():
     # Banderas para procesos de emergencia
     emergencia_22_30_enviada = False
     emergencia_23_58_enviada = False
+    aviso_22_25_enviado = False
+    aviso_23_53_enviado = False
 
     print("[INFO] Bucle automático iniciado y funcionando...")
 
@@ -290,6 +295,8 @@ def bucle_automatico_2():
                 mensaje_descanso_enviado = False
                 emergencia_22_30_enviada = False
                 emergencia_23_58_enviada = False
+                aviso_22_25_enviado = False
+                aviso_23_53_enviado = False
                 ultimo_dia = dia_actual
 
             # Calcula próxima ejecución múltiplo de 5 min
@@ -346,6 +353,17 @@ def bucle_automatico_2():
                 print("[INFO] Fuera de horario (7:00 a.m. – 9:00 p.m.). Esperando...")
 
             # ==============================
+            # AVISOS PREVIOS DE EMERGENCIA (5 MIN ANTES)
+            # ==============================
+            if hora_actual == 22 and minuto_actual == 25 and not aviso_22_25_enviado:
+                enviar_mensaje_telegram(chat_id_global_2, "⚠️ Aviso: En 5 minutos se ejecutará el proceso de emergencia (22:30).")
+                aviso_22_25_enviado = True
+
+            if hora_actual == 23 and minuto_actual == 53 and not aviso_23_53_enviado:
+                enviar_mensaje_telegram(chat_id_global_2, "⚠️ Aviso: En 5 minutos se ejecutará el proceso de emergencia (23:58).")
+                aviso_23_53_enviado = True
+
+            # ==============================
             # PROCESOS DE EMERGENCIA (UNA VEZ POR DÍA, SOLO SI ESTÁ ACTIVO)
             # ==============================
             if hora_actual == 22 and minuto_actual == 30 and not emergencia_22_30_enviada:
@@ -369,6 +387,7 @@ def bucle_automatico_2():
             print(f"[ERROR] bucle_automatico_2: {error}")
             if chat_id_global_2:
                 enviar_mensaje_telegram(chat_id_global_2, f"⚠️ Error en automático:\n{e}")
+
 
 
 # ===============================
