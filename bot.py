@@ -118,7 +118,7 @@ def exportar_y_enviar_2(chat_id):
         # Login
         driver.get("https://winbo-phx.azurewebsites.net/login.aspx")
         wait.until(EC.presence_of_element_located((By.ID, "txtUsuario"))).send_keys("brubio")
-        wait.until(EC.presence_of_element_located((By.ID, "txtPassword"))).send_keys("M123456789")
+        wait.until(EC.presence_of_element_located((By.ID, "txtPassword"))).send_keys("Tli2020peru")
         driver.find_element(By.ID, "BtnLoginInicial").click()
 
         for i in range(1, 6):
