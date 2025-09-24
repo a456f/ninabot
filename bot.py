@@ -407,7 +407,7 @@ def ejecutar_api_verificar_ordenes(chat_id):
     Función para consultar la API de verificación de órdenes.
     Se ejecuta en caso de error en el bucle automático para hacer un reintento o control adicional.
     """
-    url_api = "https://tliperu.com/prueba/telegran/api_verificar_ordenes.php"
+    url_api = "https://tliperu.com/prueba/estadistica/verificar_ordenes.php"
     intentos = 3
 
     for intento in range(intentos):
