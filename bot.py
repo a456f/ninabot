@@ -385,9 +385,38 @@ def bucle_automatico_2():
         except Exception as e:
             error = traceback.format_exc()
             print(f"[ERROR] bucle_automatico_2: {error}")
+
+            # Enviar error a Telegram
             if chat_id_global_2:
                 enviar_mensaje_telegram(chat_id_global_2, f"⚠️ Error en automático:\n{e}")
 
+            # Ejecutar API de verificación aun cuando haya ocurrido un error
+            try:
+                ejecutar_api_verificar_ordenes(chat_id_global_2)
+            except Exception as api_error:
+                print(f"[ERROR] Al ejecutar la API de verificación tras error: {api_error}")
+                if chat_id_global_2:
+                    enviar_mensaje_telegram(chat_id_global_2, f"⚠️ Error al ejecutar la API de verificación tras fallo:\n{api_error}")
+
+
+# ==============================
+# Función para ejecutar la API verificar_ordenes.php
+# ==============================
+def ejecutar_api_verificar_ordenes(chat_id=None):
+    url_api = "https://tliperu.com/prueba/estadistica/verificar_ordenes.php"
+    try:
+        respuesta = requests.get(url_api, timeout=60)
+        if respuesta.status_code == 200:
+            print("[INFO] API verificar_ordenes.php ejecutada correctamente.")
+            print("[DEBUG] Respuesta:", respuesta.text)
+        else:
+            print(f"[WARN] API devolvería status {respuesta.status_code}")
+            if chat_id:
+                enviar_mensaje_telegram(chat_id, f"⚠️ La API devolvió status {respuesta.status_code}")
+    except Exception as e:
+        print(f"[ERROR] Al llamar a verificar_ordenes.php: {e}")
+        if chat_id:
+            enviar_mensaje_telegram(chat_id, f"⚠️ Error al ejecutar la API PHP:\n{e}")
 
 
 # ===============================
