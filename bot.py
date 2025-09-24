@@ -402,22 +402,31 @@ def bucle_automatico_2():
 # ==============================
 # Función para ejecutar la API verificar_ordenes.php
 # ==============================
-def ejecutar_api_verificar_ordenes(chat_id=None):
-    url_api = "https://tliperu.com/prueba/estadistica/verificar_ordenes.php"
-    try:
-        respuesta = requests.get(url_api, timeout=60)
-        if respuesta.status_code == 200:
-            print("[INFO] API verificar_ordenes.php ejecutada correctamente.")
-            print("[DEBUG] Respuesta:", respuesta.text)
-        else:
-            print(f"[WARN] API devolvería status {respuesta.status_code}")
-            if chat_id:
-                enviar_mensaje_telegram(chat_id, f"⚠️ La API devolvió status {respuesta.status_code}")
-    except Exception as e:
-        print(f"[ERROR] Al llamar a verificar_ordenes.php: {e}")
-        if chat_id:
-            enviar_mensaje_telegram(chat_id, f"⚠️ Error al ejecutar la API PHP:\n{e}")
+def ejecutar_api_verificar_ordenes(chat_id):
+    """
+    Función para consultar la API de verificación de órdenes.
+    Se ejecuta en caso de error en el bucle automático para hacer un reintento o control adicional.
+    """
+    url_api = "https://tliperu.com/prueba/telegran/api_verificar_ordenes.php"
+    intentos = 3
 
+    for intento in range(intentos):
+        try:
+            response = requests.get(url_api, timeout=10)
+            if response.status_code == 200:
+                # Mensaje opcional al chat confirmando que la verificación se ejecutó
+                enviar_mensaje_telegram(chat_id, "✅ Verificación de órdenes ejecutada correctamente.")
+                print("[INFO] API de verificación ejecutada correctamente.")
+                break
+            else:
+                print(f"[WARNING] Intento {intento+1}: Código de respuesta {response.status_code}")
+        except Exception as e:
+            print(f"[ERROR] Intento {intento+1} fallido: {e}")
+            time.sleep(5)
+    else:
+        # Si falla los 3 intentos
+        enviar_mensaje_telegram(chat_id, "⚠️ No se pudo ejecutar la verificación de órdenes tras varios intentos.")
+        print("[ERROR] No se pudo ejecutar la API de verificación de órdenes después de 3 intentos.")
 
 # ===============================
 # Handlers de Telegram
