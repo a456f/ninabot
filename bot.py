@@ -332,6 +332,7 @@ def bucle_automatico_2():
                 print(f"[INFO] Ejecutando proceso automático a las {ahora.strftime('%H:%M:%S')}")
                 with bloqueo_auto:
                     enviar_mensaje_telegram(chat_id_global_2, "⏳ Iniciando proceso automático...")
+
                     inicio_proceso = hora_actual_lima()
                     exito = ejecutar_con_timeout(exportar_y_enviar_2, (chat_id_global_2,), 300)
                     fin_proceso = hora_actual_lima()
@@ -344,11 +345,18 @@ def bucle_automatico_2():
                         print("[ERROR] Proceso automático cancelado por exceder el tiempo límite.")
                         enviar_mensaje_telegram(chat_id_global_2, "⚠️ Proceso automático cancelado (timeout).")
 
-                # Mensaje de descanso nocturno
-                if hora_actual == 21 and minuto_actual == 0 and not mensaje_descanso_enviado:
-                    time.sleep(30)
-                    if enviar_mensaje_telegram(chat_id_global_2, "🌙 Buen trabajo por hoy. Me retiro a descansar."):
-                        mensaje_descanso_enviado = True
+                    # ===== Llamada a la API de verificar_ordenes.php junto al proceso principal =====
+                    try:
+                        ejecutar_api_verificar_ordenes(chat_id_global_2)
+                    except Exception as api_error:
+                        print(f"[ERROR] Al ejecutar la API de verificación: {api_error}")
+                        enviar_mensaje_telegram(chat_id_global_2, f"⚠️ Error al ejecutar la API de verificación:\n{api_error}")
+
+                    # Mensaje de descanso nocturno
+                    if hora_actual == 21 and minuto_actual == 0 and not mensaje_descanso_enviado:
+                        time.sleep(30)
+                        if enviar_mensaje_telegram(chat_id_global_2, "🌙 Buen trabajo por hoy. Me retiro a descansar."):
+                            mensaje_descanso_enviado = True
             else:
                 print("[INFO] Fuera de horario (7:00 a.m. – 9:00 p.m.). Esperando...")
 
@@ -397,6 +405,7 @@ def bucle_automatico_2():
                 print(f"[ERROR] Al ejecutar la API de verificación tras error: {api_error}")
                 if chat_id_global_2:
                     enviar_mensaje_telegram(chat_id_global_2, f"⚠️ Error al ejecutar la API de verificación tras fallo:\n{api_error}")
+
 
 
 # ==============================
